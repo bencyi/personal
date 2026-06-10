@@ -122,24 +122,40 @@
 
   var liquidMap = document.getElementById("liquidMap");
   var liquidNoise = document.getElementById("liquidNoise");
+  var liquidSpot = document.getElementById("liquidSpot");
   var heroName = document.getElementById("heroName");
 
-  if (!reduced && ascii && heroName && liquidMap && liquidNoise &&
+  if (!reduced && ascii && heroName && liquidMap && liquidNoise && liquidSpot &&
       window.matchMedia("(hover: hover)").matches) {
+    var SPOT_R = 140; // half the lens image size
     var liqScale = 0;
     var liqTarget = 0;
     var liqRaf = null;
     var liqT0 = performance.now();
+    var spotX = 0, spotY = 0;       // eased lens position
+    var aimX = 0, aimY = 0;         // raw cursor position
+
+    var setAim = function (e) {
+      var r = ascii.getBoundingClientRect();
+      aimX = e.clientX - r.left;
+      aimY = e.clientY - r.top;
+    };
 
     var liqFrame = function (now) {
       liqScale += (liqTarget - liqScale) * 0.09;
+      spotX += (aimX - spotX) * 0.22;
+      spotY += (aimY - spotY) * 0.22;
       var t = (now - liqT0) / 1000;
       liquidMap.setAttribute("scale", liqScale.toFixed(2));
+      liquidSpot.setAttribute("x", (spotX - SPOT_R).toFixed(1));
+      liquidSpot.setAttribute("y", (spotY - SPOT_R).toFixed(1));
       liquidNoise.setAttribute("baseFrequency",
         (0.008 + 0.004 * Math.sin(t * 1.1)).toFixed(4) + " " +
         (0.028 + 0.012 * Math.cos(t * 0.8)).toFixed(4));
       if (liqTarget === 0 && liqScale < 0.3) {
         liquidMap.setAttribute("scale", "0");
+        liquidSpot.setAttribute("x", "-9999");
+        liquidSpot.setAttribute("y", "-9999");
         ascii.classList.remove("liquid");
         liqRaf = null;
         return;
@@ -147,11 +163,14 @@
       liqRaf = requestAnimationFrame(liqFrame);
     };
 
-    heroName.addEventListener("pointerenter", function () {
+    heroName.addEventListener("pointerenter", function (e) {
+      setAim(e);
+      spotX = aimX; spotY = aimY; // appear under the cursor, not slide in
       liqTarget = 15;
       ascii.classList.add("liquid");
       if (!liqRaf) liqRaf = requestAnimationFrame(liqFrame);
     });
+    heroName.addEventListener("pointermove", setAim);
     heroName.addEventListener("pointerleave", function () {
       liqTarget = 0;
     });
