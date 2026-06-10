@@ -176,9 +176,7 @@
     });
   }
 
-  /* ---------- turbulence settle on the word "order" ----------
-     The accent word loads displaced — water-damaged — and settles
-     to crisp over ~1.6s. Same filter powers the footer easter egg. */
+  /* ---------- turbulence scale animator (powers the footer easter egg) ---------- */
 
   var wreckMap = document.getElementById("wreckMap");
 
@@ -193,11 +191,6 @@
       else if (done) done();
     }
     requestAnimationFrame(step);
-  }
-
-  if (!reduced && wreckMap) {
-    wreckMap.setAttribute("scale", "70");
-    setTimeout(function () { animateScale(70, 0, 1600); }, 250);
   }
 
   /* ---------- reveal on scroll ---------- */
