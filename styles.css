@@ -55,6 +55,7 @@ html {
 
 body {
   margin: 0;
+  overflow-x: clip; /* the hero particle canvas bleeds past the content column */
   background: var(--bg);
   color: var(--ink);
   font-family: var(--font-sans);
@@ -219,10 +220,18 @@ p { margin: 0; }
   letter-spacing: 0;
   color: var(--ink);
   user-select: none;
-  will-change: filter;
 }
 
-.hero__ascii.liquid { filter: url(#liquid); }
+/* When the particle canvas takes over, the <pre> keeps its layout box
+   but stops painting. */
+.hero__ascii.ghost { visibility: hidden; }
+
+.hero__canvas {
+  position: absolute;
+  pointer-events: none;
+}
+
+.hero__name { cursor: crosshair; }
 
 .hero__tag {
   font-size: clamp(1.35rem, 3vw, 2.2rem);

@@ -80,107 +80,206 @@
     });
   });
 
-  /* ---------- scramble → restore hero name ----------
-     The page's thesis acted out: the ASCII-art name arrives as noise and
-     gets restored to order, column by column, left to right. Spaces stay
-     spaces, so the damaged silhouette is visible from the first frame. */
+  /* ---------- the name is a physics toy ----------
+     Every glyph of the ASCII art becomes a particle on a canvas. On load
+     the name scrambles into place column by column. The cursor shoves
+     glyphs aside — they glow accent while displaced — and they spring
+     back home. Clicking anywhere in the hero detonates the whole name;
+     it reassembles itself. Order, restored. Reduced motion (or no JS)
+     keeps the static <pre>. */
 
   var GLYPHS = "█▓▒░╳#%&*+=";
   var ascii = document.getElementById("heroAscii");
+  var heroSection = document.querySelector(".hero");
 
-  function scrambleRestore(el) {
-    var lines = el.textContent.split("\n");
-    var start = performance.now();
-    var PER_COL = 16;   // ms between each column locking in
-    var PRE = 300;      // ms of pure noise before the first lock
-
-    function frame(now) {
-      var t = now - start;
-      var settled = true;
-      var out = [];
-      for (var li = 0; li < lines.length; li++) {
-        var line = lines[li];
-        var row = "";
-        for (var c = 0; c < line.length; c++) {
-          var ch = line[c];
-          if (ch === " ") { row += " "; continue; }
-          if (t > PRE + c * PER_COL) {
-            row += ch;
-          } else {
-            settled = false;
-            row += GLYPHS[(Math.random() * GLYPHS.length) | 0];
-          }
-        }
-        out.push(row);
-      }
-      el.textContent = out.join("\n");
-      if (!settled) requestAnimationFrame(frame);
-    }
-    requestAnimationFrame(frame);
+  if (ascii && heroSection && !reduced && window.HTMLCanvasElement) {
+    document.fonts.ready.then(initNameToy)["catch"](initNameToy);
   }
 
-  if (ascii && !reduced) scrambleRestore(ascii);
+  function initNameToy() {
+    var PAD = 160;                  // breathing room so flung glyphs don't clip
+    var PER_COL = 16, PRE = 300;    // scramble timing
+    var lines = ascii.textContent.split("\n");
 
-  /* ---------- liquid distortion on hover ----------
-     Hovering the name melts it: displacement scale eases up while the
-     turbulence frequency drifts, so the art flows like liquid. Eases back
-     to crisp on leave. Mouse-ish pointers only, and never under
-     prefers-reduced-motion. */
+    var canvas = document.createElement("canvas");
+    canvas.className = "hero__canvas";
+    canvas.setAttribute("aria-hidden", "true");
+    ascii.parentNode.appendChild(canvas);
+    var ctx = canvas.getContext("2d");
 
-  var liquidMap = document.getElementById("liquidMap");
-  var liquidNoise = document.getElementById("liquidNoise");
-  var liquidSpot = document.getElementById("liquidSpot");
-  var heroName = document.getElementById("heroName");
+    var parts = [];
+    var w, h, fs, lineH;
+    var palette = [];               // ink → accent ramp, 12 steps
+    var mouse = { x: -1e4, y: -1e4, vx: 0, vy: 0 };
+    var rafId = null;
+    var born = performance.now();
+    var scrambleDone = false;
 
-  if (!reduced && ascii && heroName && liquidMap && liquidNoise && liquidSpot &&
-      window.matchMedia("(hover: hover)").matches) {
-    var SPOT_R = 140; // half the lens image size
-    var liqScale = 0;
-    var liqTarget = 0;
-    var liqRaf = null;
-    var liqT0 = performance.now();
-    var spotX = 0, spotY = 0;       // eased lens position
-    var aimX = 0, aimY = 0;         // raw cursor position
+    function hexToRgb(s) {
+      s = s.trim().replace("#", "");
+      if (s.length === 3) s = s[0] + s[0] + s[1] + s[1] + s[2] + s[2];
+      var n = parseInt(s, 16);
+      return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+    }
 
-    var setAim = function (e) {
-      var r = ascii.getBoundingClientRect();
-      aimX = e.clientX - r.left;
-      aimY = e.clientY - r.top;
-    };
-
-    var liqFrame = function (now) {
-      liqScale += (liqTarget - liqScale) * 0.09;
-      spotX += (aimX - spotX) * 0.22;
-      spotY += (aimY - spotY) * 0.22;
-      var t = (now - liqT0) / 1000;
-      liquidMap.setAttribute("scale", liqScale.toFixed(2));
-      liquidSpot.setAttribute("x", (spotX - SPOT_R).toFixed(1));
-      liquidSpot.setAttribute("y", (spotY - SPOT_R).toFixed(1));
-      liquidNoise.setAttribute("baseFrequency",
-        (0.008 + 0.004 * Math.sin(t * 1.1)).toFixed(4) + " " +
-        (0.028 + 0.012 * Math.cos(t * 0.8)).toFixed(4));
-      if (liqTarget === 0 && liqScale < 0.3) {
-        liquidMap.setAttribute("scale", "0");
-        liquidSpot.setAttribute("x", "-9999");
-        liquidSpot.setAttribute("y", "-9999");
-        ascii.classList.remove("liquid");
-        liqRaf = null;
-        return;
+    function buildPalette() {
+      var cs = getComputedStyle(document.documentElement);
+      var a = hexToRgb(cs.getPropertyValue("--ink"));
+      var b = hexToRgb(cs.getPropertyValue("--accent"));
+      palette = [];
+      for (var i = 0; i <= 11; i++) {
+        var k = i / 11;
+        palette.push("rgb(" +
+          Math.round(a[0] + (b[0] - a[0]) * k) + "," +
+          Math.round(a[1] + (b[1] - a[1]) * k) + "," +
+          Math.round(a[2] + (b[2] - a[2]) * k) + ")");
       }
-      liqRaf = requestAnimationFrame(liqFrame);
-    };
+    }
 
-    heroName.addEventListener("pointerenter", function (e) {
-      setAim(e);
-      spotX = aimX; spotY = aimY; // appear under the cursor, not slide in
-      liqTarget = 15;
-      ascii.classList.add("liquid");
-      if (!liqRaf) liqRaf = requestAnimationFrame(liqFrame);
+    function build() {
+      var rect = ascii.getBoundingClientRect();
+      var dpr = window.devicePixelRatio || 1;
+      fs = parseFloat(getComputedStyle(ascii).fontSize);
+      lineH = fs * 1.06;
+      w = rect.width + PAD * 2;
+      h = rect.height + PAD * 2;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width = w + "px";
+      canvas.style.height = h + "px";
+      canvas.style.left = (ascii.offsetLeft - PAD) + "px";
+      canvas.style.top = (ascii.offsetTop - PAD) + "px";
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.font = "500 " + fs + "px 'JetBrains Mono', ui-monospace, monospace";
+      ctx.textBaseline = "top";
+      var charW = ctx.measureText("█").width;
+      parts = [];
+      for (var r = 0; r < lines.length; r++) {
+        for (var c = 0; c < lines[r].length; c++) {
+          var ch = lines[r][c];
+          if (ch === " ") continue;
+          var hx = PAD + c * charW;
+          var hy = PAD + r * lineH;
+          parts.push({ ch: ch, col: c, hx: hx, hy: hy, x: hx, y: hy, vx: 0, vy: 0 });
+        }
+      }
+    }
+
+    function frame(now) {
+      ctx.clearRect(0, 0, w, h);
+      var t = now - born;
+      var active = false;
+      if (!scrambleDone) {
+        active = true;
+        if (t > PRE + 74 * PER_COL) scrambleDone = true;
+      }
+      var R = fs * 6.5;
+      var R2 = R * R;
+      for (var i = 0; i < parts.length; i++) {
+        var p = parts[i];
+        var dx = p.x - mouse.x, dy = p.y - mouse.y;
+        var d2 = dx * dx + dy * dy;
+        if (d2 < R2) {
+          var d = Math.sqrt(d2) || 1;
+          var f = 1 - d / R;
+          f *= f;
+          p.vx += (dx / d) * f * 3.4 + mouse.vx * f * 0.22;
+          p.vy += (dy / d) * f * 3.4 + mouse.vy * f * 0.22;
+        }
+        p.vx += (p.hx - p.x) * 0.02;
+        p.vy += (p.hy - p.y) * 0.02;
+        p.vx *= 0.88;
+        p.vy *= 0.88;
+        p.x += p.vx;
+        p.y += p.vy;
+
+        var ox = p.x - p.hx, oy = p.y - p.hy;
+        var off2 = ox * ox + oy * oy;
+        if (off2 > 0.03 || p.vx * p.vx + p.vy * p.vy > 0.03) active = true;
+
+        var ch = p.ch;
+        if (!scrambleDone && t < PRE + p.col * PER_COL) {
+          ch = GLYPHS[(Math.random() * GLYPHS.length) | 0];
+        }
+        var heat = Math.min(Math.sqrt(off2) / (fs * 2.2), 1);
+        ctx.fillStyle = palette[(heat * 11) | 0];
+        ctx.fillText(ch, p.x, p.y);
+      }
+      if (active) {
+        rafId = requestAnimationFrame(frame);
+      } else {
+        rafId = null; // everything home and still — sleep until poked
+      }
+    }
+
+    function wake() {
+      if (!rafId) rafId = requestAnimationFrame(frame);
+    }
+
+    function toCanvas(e) {
+      var rc = canvas.getBoundingClientRect();
+      return { x: e.clientX - rc.left, y: e.clientY - rc.top };
+    }
+
+    heroSection.addEventListener("pointermove", function (e) {
+      var pt = toCanvas(e);
+      var nvx = pt.x - mouse.x, nvy = pt.y - mouse.y;
+      // ignore the jump on the first event after entering
+      if (Math.abs(nvx) < 120 && Math.abs(nvy) < 120) {
+        mouse.vx = nvx;
+        mouse.vy = nvy;
+      } else {
+        mouse.vx = 0;
+        mouse.vy = 0;
+      }
+      mouse.x = pt.x;
+      mouse.y = pt.y;
+      wake();
     });
-    heroName.addEventListener("pointermove", setAim);
-    heroName.addEventListener("pointerleave", function () {
-      liqTarget = 0;
+
+    heroSection.addEventListener("pointerleave", function () {
+      mouse.x = -1e4;
+      mouse.y = -1e4;
+      mouse.vx = 0;
+      mouse.vy = 0;
     });
+
+    // Click (not on a link/button) = detonate. The spring brings it home.
+    heroSection.addEventListener("pointerdown", function (e) {
+      if (e.target.closest("a, button")) return;
+      var pt = toCanvas(e);
+      for (var i = 0; i < parts.length; i++) {
+        var p = parts[i];
+        var dx = p.x - pt.x, dy = p.y - pt.y;
+        var d = Math.sqrt(dx * dx + dy * dy) || 1;
+        var imp = 30 * Math.exp(-d / 320) * (0.6 + Math.random() * 0.8);
+        p.vx += (dx / d) * imp;
+        p.vy += (dy / d) * imp + (Math.random() - 0.5) * 2;
+      }
+      wake();
+    });
+
+    var themeBtn = document.getElementById("themeToggle");
+    if (themeBtn) {
+      themeBtn.addEventListener("click", function () {
+        buildPalette();
+        wake();
+      });
+    }
+
+    var resizeTimer;
+    window.addEventListener("resize", function () {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function () {
+        build();
+        wake();
+      }, 150);
+    });
+
+    buildPalette();
+    build();
+    ascii.classList.add("ghost"); // canvas takes over painting
+    wake();
   }
 
   /* ---------- turbulence scale animator (powers the footer easter egg) ---------- */
