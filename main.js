@@ -6,6 +6,13 @@
 
   var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+  // SMIL animations (the orbiting satellite) can't be gated from CSS.
+  if (reduced) {
+    document.querySelectorAll("svg").forEach(function (s) {
+      if (s.pauseAnimations) s.pauseAnimations();
+    });
+  }
+
   /* ---------- live clock (Austin = America/Chicago) ---------- */
 
   var clock = document.getElementById("clock");
