@@ -249,14 +249,6 @@ p { margin: 0; }
   margin-top: 2.6rem;
 }
 
-.hero__status {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  color: var(--muted);
-  margin-top: 1.6rem;
-}
-
 .hero__flag {
   width: 21px;
   height: 14px;
