@@ -74,39 +74,88 @@
   });
 
   /* ---------- scramble → restore hero name ----------
-     The page's thesis acted out: the name arrives as noise and gets
-     restored to order, character by character, left to right. */
+     The page's thesis acted out: the ASCII-art name arrives as noise and
+     gets restored to order, column by column, left to right. Spaces stay
+     spaces, so the damaged silhouette is visible from the first frame. */
 
-  var GLYPHS = "#/\\|<>_*+=%$&";
-  var hero = document.getElementById("heroName");
+  var GLYPHS = "█▓▒░╳#%&*+=";
+  var ascii = document.getElementById("heroAscii");
 
   function scrambleRestore(el) {
-    var finalText = el.getAttribute("aria-label") || el.textContent;
-    var chars = finalText.split("");
+    var lines = el.textContent.split("\n");
     var start = performance.now();
-    var PER_CHAR = 55;   // ms between each character locking in
-    var PRE = 350;       // ms of pure noise before the first lock
+    var PER_COL = 16;   // ms between each column locking in
+    var PRE = 300;      // ms of pure noise before the first lock
 
     function frame(now) {
       var t = now - start;
-      var out = "";
       var settled = true;
-      for (var i = 0; i < chars.length; i++) {
-        if (chars[i] === " ") { out += " "; continue; }
-        if (t > PRE + i * PER_CHAR) {
-          out += chars[i];
-        } else {
-          settled = false;
-          out += GLYPHS[(Math.random() * GLYPHS.length) | 0];
+      var out = [];
+      for (var li = 0; li < lines.length; li++) {
+        var line = lines[li];
+        var row = "";
+        for (var c = 0; c < line.length; c++) {
+          var ch = line[c];
+          if (ch === " ") { row += " "; continue; }
+          if (t > PRE + c * PER_COL) {
+            row += ch;
+          } else {
+            settled = false;
+            row += GLYPHS[(Math.random() * GLYPHS.length) | 0];
+          }
         }
+        out.push(row);
       }
-      el.textContent = out;
+      el.textContent = out.join("\n");
       if (!settled) requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);
   }
 
-  if (hero && !reduced) scrambleRestore(hero);
+  if (ascii && !reduced) scrambleRestore(ascii);
+
+  /* ---------- liquid distortion on hover ----------
+     Hovering the name melts it: displacement scale eases up while the
+     turbulence frequency drifts, so the art flows like liquid. Eases back
+     to crisp on leave. Mouse-ish pointers only, and never under
+     prefers-reduced-motion. */
+
+  var liquidMap = document.getElementById("liquidMap");
+  var liquidNoise = document.getElementById("liquidNoise");
+  var heroName = document.getElementById("heroName");
+
+  if (!reduced && ascii && heroName && liquidMap && liquidNoise &&
+      window.matchMedia("(hover: hover)").matches) {
+    var liqScale = 0;
+    var liqTarget = 0;
+    var liqRaf = null;
+    var liqT0 = performance.now();
+
+    var liqFrame = function (now) {
+      liqScale += (liqTarget - liqScale) * 0.09;
+      var t = (now - liqT0) / 1000;
+      liquidMap.setAttribute("scale", liqScale.toFixed(2));
+      liquidNoise.setAttribute("baseFrequency",
+        (0.008 + 0.004 * Math.sin(t * 1.1)).toFixed(4) + " " +
+        (0.028 + 0.012 * Math.cos(t * 0.8)).toFixed(4));
+      if (liqTarget === 0 && liqScale < 0.3) {
+        liquidMap.setAttribute("scale", "0");
+        ascii.classList.remove("liquid");
+        liqRaf = null;
+        return;
+      }
+      liqRaf = requestAnimationFrame(liqFrame);
+    };
+
+    heroName.addEventListener("pointerenter", function () {
+      liqTarget = 15;
+      ascii.classList.add("liquid");
+      if (!liqRaf) liqRaf = requestAnimationFrame(liqFrame);
+    });
+    heroName.addEventListener("pointerleave", function () {
+      liqTarget = 0;
+    });
+  }
 
   /* ---------- turbulence settle on the word "order" ----------
      The accent word loads displaced — water-damaged — and settles

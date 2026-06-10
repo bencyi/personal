@@ -202,22 +202,27 @@ p { margin: 0; }
 }
 
 .hero__name {
-  font-size: clamp(3.2rem, 12.5vw, 9.5rem);
-  font-variation-settings: "wdth" 110;
-  text-transform: uppercase;
-  letter-spacing: -0.03em;
   position: relative;
   z-index: 1;
+  margin: 0;
 }
 
-@media (hover: hover) and (prefers-reduced-motion: no-preference) {
-  .hero__name {
-    transition: font-variation-settings 0.8s var(--ease-out);
-  }
-  .hero__name:hover {
-    font-variation-settings: "wdth" 125;
-  }
+/* The name is ASCII art in a <pre>; the h1 carries the real text via
+   aria-label. 73 columns of JetBrains Mono (0.6em advance) sized to fill
+   the content width: (100vw - gutters) / (73 * 0.6) ≈ / 44. */
+.hero__ascii {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: clamp(7px, calc((100vw - 2 * var(--gutter)) / 44), 25px);
+  line-height: 1.06;
+  letter-spacing: 0;
+  color: var(--ink);
+  user-select: none;
+  will-change: filter;
 }
+
+.hero__ascii.liquid { filter: url(#liquid); }
 
 .hero__tag {
   font-size: clamp(1.5rem, 3.6vw, 2.6rem);
