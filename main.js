@@ -6,12 +6,12 @@
 
   var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  /* ---------- live clock (Bethesda = America/New_York) ---------- */
+  /* ---------- live clock (Austin = America/Chicago) ---------- */
 
   var clock = document.getElementById("clock");
   if (clock) {
     var fmt = new Intl.DateTimeFormat("en-US", {
-      timeZone: "America/New_York",
+      timeZone: "America/Chicago",
       hour: "2-digit", minute: "2-digit", second: "2-digit",
       hour12: false
     });
@@ -153,13 +153,14 @@
 
   function countUp(el) {
     var target = parseInt(el.getAttribute("data-count"), 10);
+    var prefix = el.getAttribute("data-prefix") || "";
     var suffix = el.getAttribute("data-suffix") || "";
     var dur = 1400;
     var t0 = performance.now();
     function step(now) {
       var p = Math.min((now - t0) / dur, 1);
       var eased = 1 - Math.pow(1 - p, 3);
-      el.textContent = Math.round(target * eased).toLocaleString("en-US") + (p === 1 ? suffix : "");
+      el.textContent = prefix + Math.round(target * eased).toLocaleString("en-US") + (p === 1 ? suffix : "");
       if (p < 1) requestAnimationFrame(step);
     }
     requestAnimationFrame(step);
@@ -169,11 +170,14 @@
   if (!reduced && "IntersectionObserver" in window) {
     // Markup ships the final values (works without JS); zero them out only
     // now that we know we'll animate them back up.
-    counts.forEach(function (el) { el.textContent = "0"; });
+    counts.forEach(function (el) {
+      el.textContent = (el.getAttribute("data-prefix") || "") + "0";
+    });
   }
   if (reduced || !("IntersectionObserver" in window)) {
     counts.forEach(function (el) {
       el.textContent =
+        (el.getAttribute("data-prefix") || "") +
         parseInt(el.getAttribute("data-count"), 10).toLocaleString("en-US") +
         (el.getAttribute("data-suffix") || "");
     });

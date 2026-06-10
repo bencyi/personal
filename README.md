@@ -1,23 +1,42 @@
 # benyi — personal site
 
-Personal website and professional portfolio for **Benjamin Yi** — COO & Managing
-Partner at [RestoreFast](https://www.restorefast.com).
+Personal website and professional portfolio for **Benjamin Yi** — CEO & Co-Founder
+of [RestoreFast](https://www.restorefast.com), an AI-native contracting platform
+serving military housing nationwide.
 
 **Concept: "I restore order."** The site acts out its own thesis — the hero name
 arrives as noise and is restored to crisp type; the accent word *order* loads
 "water-damaged" (SVG displacement) and settles; the footer's **BREAK THIS PAGE**
 button wrecks the page and restores it, reporting the response time.
 
+## Structure
+
+```
+index.html                  one-page portfolio (hero / stats / work / path / research / notes / contact)
+styles.css                  all site styles, dark + light themes
+main.js                     all behavior, every effect gated on prefers-reduced-motion
+404.html                    "this page suffered a total loss"
+og.png                      1200×630 social share image
+Benjamin-Yi-Resume.pdf      downloadable résumé (linked from Contact)
+papers/
+  beyond-transformers.html                  paper rendered as HTML in site design
+  continuous-thermodynamic-descent.html     paper rendered as HTML in site design
+  *.docx                                    original downloads
+  img/                                      paper figures
+  paper.css                                 article layout extending styles.css
+```
+
 ## Stack
 
-Hand-written `index.html`, `styles.css`, `main.js`. **Zero dependencies, zero
-build step, zero trackers.** Two webfonts (Archivo variable + JetBrains Mono)
-via Google Fonts are the only external requests.
+Hand-written HTML, CSS, JS. **Zero dependencies, zero build step, zero trackers.**
+Two webfonts (Archivo variable + JetBrains Mono) via Google Fonts are the only
+external requests.
 
 - Dark-mode-first with a paper light theme (toggle persists in `localStorage`)
-- All motion gated behind `prefers-reduced-motion`
-- Semantic HTML, skip link, keyboard navigable, JSON-LD `Person` schema
-- Live Bethesda clock, count-up stats, scroll reveals via `IntersectionObserver`
+- All motion gated behind `prefers-reduced-motion`; axe audit: 0 violations
+- Content fully server-rendered: everything readable with JS disabled
+- Live Austin clock, count-up stats, scroll reveals via `IntersectionObserver`
+- JSON-LD `Person` schema, OG/Twitter cards, skip link, keyboard navigable
 
 ## Develop
 
@@ -29,22 +48,17 @@ python3 -m http.server 8080   # or any static server
 
 ## Deploy
 
-Any static host works as-is:
+Any static host works as-is: GitHub Pages (deploy from branch, root), Vercel,
+Netlify, Cloudflare Pages — no build command, output directory `/`.
 
-- **GitHub Pages** — Settings → Pages → deploy from branch (root). Works for
-  `bencyi.github.io` or this repo with a custom domain.
-- **Vercel / Netlify / Cloudflare Pages** — point at the repo, no build command,
-  output directory `/`.
+> **Note:** `og:image`, `og:url`, and `canonical` in `index.html` currently point
+> at `https://bencyi.github.io/`. Update these three URLs if the site ships on a
+> custom domain.
 
-## Content to review before going live
+## Content notes
 
-These were drafted from public sources and need Ben's sign-off:
-
-- [ ] **Stats** (`index.html`, stats section): 5,000,000+ sq ft restored, 100+
-      emergency responses/yr, 2,400+ workers deployed — from a public interview
-      about RestoreFast; verify/update the numbers.
-- [ ] **Operating notes** (section 04): three principles written in Ben's voice —
-      edit until they actually sound like him.
-- [ ] **Off hours** (section 03): descriptions reference side projects from
-      private repos in generic terms — confirm comfort level with each line.
-- [ ] **Career timeline** (section 02): titles/order from public profiles.
+All facts (revenue, agent-runtime numbers, timeline, installations, clients) are
+drawn from Ben's résumé (June 2026). The three "Operating Notes" in section 04
+are editorial — written in Ben's voice, edit freely. Papers in `papers/` were
+converted from the original .docx manuscripts; originals are linked for download
+on each paper page.
