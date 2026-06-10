@@ -93,7 +93,11 @@
   var heroSection = document.querySelector(".hero");
 
   if (ascii && heroSection && !reduced && window.HTMLCanvasElement) {
-    document.fonts.ready.then(initNameToy)["catch"](initNameToy);
+    // Pull the mono face in explicitly so the canvas never measures a
+    // fallback font; fonts.ready alone can race the stylesheet.
+    document.fonts.load("500 25px 'JetBrains Mono'").then(function () {
+      return document.fonts.ready;
+    }).then(initNameToy)["catch"](initNameToy);
   }
 
   function initNameToy() {
@@ -155,10 +159,13 @@
       var charW = ctx.measureText("█").width;
       parts = [];
       for (var r = 0; r < lines.length; r++) {
+        // mirror the pre's text-align: center, line by line
+        var lineW = lines[r].replace(/\s+$/, "").length * charW;
+        var offX = (rect.width - lineW) / 2;
         for (var c = 0; c < lines[r].length; c++) {
           var ch = lines[r][c];
           if (ch === " ") continue;
-          var hx = PAD + c * charW;
+          var hx = PAD + offX + c * charW;
           var hy = PAD + r * lineH;
           parts.push({ ch: ch, col: c, hx: hx, hy: hy, x: hx, y: hy, vx: 0, vy: 0 });
         }
@@ -280,6 +287,12 @@
     build();
     ascii.classList.add("ghost"); // canvas takes over painting
     wake();
+
+    // If the webfont lands after init, metrics changed — rebuild the grid.
+    document.fonts.addEventListener("loadingdone", function () {
+      build();
+      wake();
+    });
   }
 
   /* ---------- turbulence scale animator (powers the footer easter egg) ---------- */

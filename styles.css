@@ -221,6 +221,7 @@ p { margin: 0; }
   letter-spacing: 0;
   color: var(--ink);
   user-select: none;
+  text-align: center; /* each art line centers itself in the column */
 }
 
 /* When the particle canvas takes over, the <pre> keeps its layout box
