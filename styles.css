@@ -162,6 +162,7 @@ p { margin: 0; }
   flex-direction: column;
   justify-content: center;
   padding-top: 6rem;
+  padding-bottom: clamp(3rem, 9vh, 7rem);
   position: relative;
 }
 
