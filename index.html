@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Benjamin Yi — Operator. Builder. Realist.</title>
+  <meta name="description" content="Benjamin Yi is COO &amp; Managing Partner at RestoreFast — 24/7 commercial emergency restoration. Operations, finance, and technology for the worst day of a building's life.">
+  <meta property="og:title" content="Benjamin Yi — I restore order.">
+  <meta property="og:description" content="COO &amp; Managing Partner at RestoreFast. Operations, finance, and technology for the worst day of a building's life.">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#0c0c0b">
+
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23ff4d00'/%3E%3Ctext x='32' y='44' font-family='monospace' font-size='34' font-weight='700' fill='%230c0c0b' text-anchor='middle'%3EBY%3C/text%3E%3C/svg%3E">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css">
+
+  <script>
+    // Set theme before first paint to avoid a flash of the wrong scheme.
+    (function () {
+      document.documentElement.classList.add('js');
+      try {
+        var t = localStorage.getItem('theme');
+        if (!t) t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        document.documentElement.dataset.theme = t;
+      } catch (e) { /* default stays dark */ }
+    })();
+  </script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": "Benjamin Yi",
+    "jobTitle": "Chief Operating Officer & Managing Partner",
+    "worksFor": { "@type": "Organization", "name": "RestoreFast", "url": "https://www.restorefast.com" },
+    "email": "mailto:ben.yi@restorefast.com",
+    "address": { "@type": "PostalAddress", "addressLocality": "Bethesda", "addressRegion": "MD", "addressCountry": "US" },
+    "sameAs": [
+      "https://www.linkedin.com/in/bencyi/",
+      "https://github.com/bencyi"
+    ]
+  }
+  </script>
+</head>
+<body>
+  <a class="skip mono" href="#work">Skip the intro →</a>
+
+  <!-- Film grain over everything; purely decorative. -->
+  <div class="noise" aria-hidden="true"></div>
+
+  <!-- Displacement filter used by the hero "order" settle and the footer break/restore. -->
+  <svg class="svg-defs" aria-hidden="true" focusable="false">
+    <defs>
+      <filter id="wreck" x="-20%" y="-20%" width="140%" height="140%">
+        <feTurbulence id="wreckNoise" type="fractalNoise" baseFrequency="0.013 0.052" numOctaves="2" seed="7" result="n"/>
+        <feDisplacementMap id="wreckMap" in="SourceGraphic" in2="n" scale="0" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+    </defs>
+  </svg>
+
+  <header class="site-head">
+    <a class="mark mono" href="#top" aria-label="Benjamin Yi — back to top">B/Y</a>
+    <nav class="site-nav mono" aria-label="Primary">
+      <a href="#work">Work</a>
+      <a href="#path">Path</a>
+      <a href="#building">Building</a>
+      <a href="#contact">Contact</a>
+    </nav>
+    <button id="themeToggle" class="theme-toggle mono" type="button" aria-label="Switch color theme">
+      <span class="theme-toggle__dark">DARK</span><span class="theme-toggle__light">LIGHT</span>
+    </button>
+  </header>
+
+  <main id="top">
+
+    <!-- ============ HERO ============ -->
+    <section class="hero" aria-label="Introduction">
+      <p class="eyebrow mono">
+        <span class="pulse" aria-hidden="true"></span>
+        BETHESDA, MD — <time id="clock" datetime="">--:--:--</time> ET · ON CALL 24/7
+      </p>
+
+      <h1 id="heroName" class="hero__name" aria-label="Benjamin Yi">Benjamin Yi</h1>
+
+      <p class="hero__tag">I restore <span id="orderWord" class="order">order</span>.</p>
+
+      <p class="lede">
+        COO &amp; Managing Partner at <a href="https://www.restorefast.com" rel="noopener">RestoreFast</a>.
+        When water, fire, or weather takes a commercial building down, my teams put it
+        back — fast — and the technology we build proves every hour of the work.
+      </p>
+
+      <div class="hero__cta">
+        <a class="btn" href="#work">What I do <span aria-hidden="true">↓</span></a>
+        <button class="btn btn--ghost mono" type="button" data-copy="ben.yi@restorefast.com">
+          ben.yi@restorefast.com
+        </button>
+      </div>
+    </section>
+
+    <!-- ============ STATS ============ -->
+    <section class="stats" aria-label="By the numbers">
+      <dl class="stats__grid">
+        <div class="stat reveal">
+          <dt class="mono">SQ FT RESTORED</dt>
+          <dd><span class="count" data-count="5000000" data-suffix="+">5,000,000+</span></dd>
+        </div>
+        <div class="stat reveal">
+          <dt class="mono">EMERGENCY RESPONSES / YR</dt>
+          <dd><span class="count" data-count="100" data-suffix="+">100+</span></dd>
+        </div>
+        <div class="stat reveal">
+          <dt class="mono">WORKERS DEPLOYED</dt>
+          <dd><span class="count" data-count="2400" data-suffix="+">2,400+</span></dd>
+        </div>
+        <div class="stat reveal">
+          <dt class="mono">ALWAYS ON</dt>
+          <dd>24/7</dd>
+        </div>
+      </dl>
+    </section>
+
+    <!-- ============ 01 WORK ============ -->
+    <section id="work" class="section">
+      <p class="section__no mono reveal">01 / THE DAY JOB</p>
+      <h2 class="reveal">Operations for the worst day of a building's&nbsp;life.</h2>
+
+      <ul class="rows">
+        <li class="row reveal">
+          <h3>Emergency operations</h3>
+          <p>Crews, trucks, and equipment mobilized in hours, not days — around the clock,
+             around the year. Flood, fire, storm, mold: the schedule is the product.</p>
+        </li>
+        <li class="row reveal">
+          <h3>The claims engine</h3>
+          <p>Restoration is half construction, half paperwork. I run the documentation and
+             reporting pipeline that makes insurance claims clean, fast, and undisputed.</p>
+        </li>
+        <li class="row reveal">
+          <h3>Field technology</h3>
+          <p>GPS-tracked fleet. LiDAR capture of every site, so clients can walk the job
+             virtually and see exactly what was done. If it happened, it's on record.</p>
+        </li>
+      </ul>
+
+      <a class="section__link mono reveal" href="https://www.restorefast.com" rel="noopener">RESTOREFAST.COM <span aria-hidden="true">→</span></a>
+    </section>
+
+    <!-- ============ 02 PATH ============ -->
+    <section id="path" class="section">
+      <p class="section__no mono reveal">02 / THE PATH</p>
+      <h2 class="reveal">Started in the data.<br>Ended up running the&nbsp;trucks.</h2>
+
+      <ol class="timeline" reversed>
+        <li class="timeline__item reveal">
+          <span class="timeline__when mono">NOW</span>
+          <div>
+            <h3>COO &amp; Managing Partner — RestoreFast</h3>
+            <p>Operations, finance, technology. The whole machine.</p>
+          </div>
+        </li>
+        <li class="timeline__item reveal">
+          <span class="timeline__when mono">BEFORE</span>
+          <div>
+            <h3>Manager, Finance &amp; Technology — RestoreFast</h3>
+            <p>Built the back office and the tech stack before stepping up to run operations.</p>
+          </div>
+        </li>
+        <li class="timeline__item reveal">
+          <span class="timeline__when mono">EARLIER</span>
+          <div>
+            <h3>Manager, Finance &amp; Technology — Marathon Building Services</h3>
+            <p>Facilities management: where buildings, budgets, and software first collided.</p>
+          </div>
+        </li>
+        <li class="timeline__item reveal">
+          <span class="timeline__when mono">START</span>
+          <div>
+            <h3>Data Science Associate — Marathon Building Services</h3>
+            <p>First job: find the signal in operational data. Never stopped.</p>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <!-- ============ 03 BUILDING ============ -->
+    <section id="building" class="section">
+      <p class="section__no mono reveal">03 / OFF HOURS</p>
+      <h2 class="reveal">I still build.</h2>
+      <p class="section__intro reveal">
+        The title says operator. The commit history says otherwise. Off hours I build
+        small tools that remove friction — most of them private, all of them used.
+      </p>
+
+      <ul class="rows rows--tagged">
+        <li class="row reveal">
+          <span class="row__tag mono">LLM × ACCOUNTING</span>
+          <p>MCP servers wiring language models into the accounting stack — closing the
+             books with fewer clicks.</p>
+        </li>
+        <li class="row reveal">
+          <span class="row__tag mono">AUTOMATION</span>
+          <p>Email bots, PDF pipelines, internal utilities. Boring software for boring
+             problems — which is the best kind.</p>
+        </li>
+        <li class="row reveal">
+          <span class="row__tag mono">RESEARCH</span>
+          <p>Current rabbit hole: diffusion language models on thermodynamic computing
+             hardware.</p>
+        </li>
+        <li class="row reveal">
+          <span class="row__tag mono">THIS SITE</span>
+          <p>Hand-written HTML, CSS, and JavaScript. Zero dependencies, zero trackers,
+             loads in a blink.</p>
+        </li>
+      </ul>
+    </section>
+
+    <!-- ============ 04 NOTES ============ -->
+    <section id="notes" class="section">
+      <p class="section__no mono reveal">04 / OPERATING NOTES</p>
+      <h2 class="reveal">Realist.</h2>
+
+      <ol class="notes">
+        <li class="note reveal">
+          <span class="note__no mono">N°1</span>
+          <p><strong>Speed is the product.</strong> In an emergency, nobody remembers the
+             price — everybody remembers the timeline.</p>
+        </li>
+        <li class="note reveal">
+          <span class="note__no mono">N°2</span>
+          <p><strong>Trust is documentation.</strong> If it isn't recorded, it didn't
+             happen.</p>
+        </li>
+        <li class="note reveal">
+          <span class="note__no mono">N°3</span>
+          <p><strong>Technology is leverage, not theater.</strong> If a tool doesn't save
+             an hour or win a claim, it doesn't ship.</p>
+        </li>
+      </ol>
+    </section>
+
+    <!-- ============ 05 CONTACT ============ -->
+    <section id="contact" class="section section--contact">
+      <p class="section__no mono reveal">05 / CONTACT</p>
+      <h2 class="contact__big reveal">On call.</h2>
+      <p class="section__intro reveal">
+        The fastest way to reach me is email. If a building is underwater right now,
+        call <a href="https://www.restorefast.com" rel="noopener">RestoreFast</a> first — then email me.
+      </p>
+      <div class="contact__actions reveal">
+        <button class="btn" type="button" data-copy="ben.yi@restorefast.com">Copy my email</button>
+        <a class="btn btn--ghost mono" href="https://www.linkedin.com/in/bencyi/" rel="noopener">LINKEDIN <span aria-hidden="true">↗</span></a>
+        <a class="btn btn--ghost mono" href="https://github.com/bencyi" rel="noopener">GITHUB <span aria-hidden="true">↗</span></a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-foot">
+    <p class="mono">© 2026 BENJAMIN YI · BETHESDA, MD</p>
+    <p class="mono site-foot__colophon">HAND-BUILT. NO FRAMEWORKS, NO ANALYTICS, NOTHING TO CONSENT TO.</p>
+    <button id="breakBtn" class="break mono" type="button">
+      BREAK THIS PAGE<span aria-hidden="true"> ⚠</span>
+    </button>
+  </footer>
+
+  <div id="toast" class="toast mono" role="status" aria-live="polite"></div>
+
+  <script src="main.js" defer></script>
+</body>
+</html>
