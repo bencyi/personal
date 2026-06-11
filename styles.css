@@ -164,6 +164,17 @@ p { margin: 0; }
   padding-top: 6rem;
   padding-bottom: clamp(3rem, 9vh, 7rem);
   position: relative;
+  /* Indent intro copy to the ASCII art's left edge: the art is 73 columns
+     of mono (0.6em advance) centered in the column. JS refines this with
+     the measured value once the canvas is live. */
+  --ascii-fs: clamp(7px, calc((100vw - 2 * var(--gutter)) / 44), 25px);
+  --hero-indent: max(0px, calc((var(--w) - var(--ascii-fs) * 43.8) / 2));
+}
+
+.hero > .eyebrow,
+.hero > .lede,
+.hero > .hero__cta {
+  margin-left: var(--hero-indent, 0px);
 }
 
 /* faint structural grid behind the hero */

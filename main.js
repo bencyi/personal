@@ -158,10 +158,12 @@
       ctx.textBaseline = "top";
       var charW = ctx.measureText("█").width;
       parts = [];
+      var minOff = Infinity;
       for (var r = 0; r < lines.length; r++) {
         // mirror the pre's text-align: center, line by line
         var lineW = lines[r].replace(/\s+$/, "").length * charW;
         var offX = (rect.width - lineW) / 2;
+        if (lines[r].trim() && offX < minOff) minOff = offX;
         for (var c = 0; c < lines[r].length; c++) {
           var ch = lines[r][c];
           if (ch === " ") continue;
@@ -170,6 +172,8 @@
           parts.push({ ch: ch, col: c, hx: hx, hy: hy, x: hx, y: hy, vx: 0, vy: 0 });
         }
       }
+      // align the hero's intro copy with the art's true left edge
+      heroSection.style.setProperty("--hero-indent", Math.max(0, minOff).toFixed(1) + "px");
     }
 
     function frame(now) {
