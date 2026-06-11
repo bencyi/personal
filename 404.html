@@ -14,7 +14,7 @@
     (function () {
       try {
         var t = localStorage.getItem('theme');
-        if (!t) t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        if (!t) t = 'dark'; // site defaults to dark; toggle preference persists
         document.documentElement.dataset.theme = t;
       } catch (e) {}
     })();
