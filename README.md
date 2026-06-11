@@ -46,14 +46,38 @@ No tooling needed:
 python3 -m http.server 8080   # or any static server
 ```
 
-## Deploy
+## Deploy — benyi.ai (primary), benyi.co (redirect)
 
-Any static host works as-is: GitHub Pages (deploy from branch, root), Vercel,
-Netlify, Cloudflare Pages — no build command, output directory `/`.
+The site is static with no build step; `CNAME` is committed for GitHub Pages
+and all absolute URLs (`canonical`, `og:url`, `og:image`, JSON-LD) point at
+`https://benyi.ai`.
 
-> **Note:** `og:image`, `og:url`, and `canonical` in `index.html` currently point
-> at `https://bencyi.github.io/`. Update these three URLs if the site ships on a
-> custom domain.
+### GitHub Pages (recommended, free)
+
+1. **Repo settings → Pages**: Source = "Deploy from a branch", Branch = `main`,
+   folder `/ (root)`. The committed `CNAME` file sets the custom domain.
+2. **DNS for benyi.ai** (at the registrar):
+   - Apex `benyi.ai`: four `A` records → `185.199.108.153`, `185.199.109.153`,
+     `185.199.110.153`, `185.199.111.153`
+     (optionally `AAAA` → `2606:50c0:8000::153` … `:8003::153`)
+   - `www.benyi.ai`: `CNAME` → `bencyi.github.io`
+3. Back in **Settings → Pages**, enter `benyi.ai` as the custom domain and tick
+   **Enforce HTTPS** once the certificate is issued (can take ~15 min after DNS
+   propagates).
+
+### benyi.co → benyi.ai redirect
+
+Don't host a second copy — redirect. Easiest options:
+- Registrar-level forwarding (most registrars: "Domain forwarding" →
+  `https://benyi.ai`, permanent/301), or
+- Put benyi.co on Cloudflare (free) and add a Bulk Redirect / Page Rule:
+  `*benyi.co/*` → `https://benyi.ai/$2` (301).
+
+### Alternative: Vercel / Netlify / Cloudflare Pages
+
+Import the repo, no build command, output directory `/`. Add `benyi.ai` as the
+production domain and `benyi.co` as a redirect domain. If you go this route,
+delete the `CNAME` file (it's GitHub-Pages-specific).
 
 ## Content notes
 
