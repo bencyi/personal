@@ -488,77 +488,6 @@ p { margin: 0; }
   .split { grid-template-columns: 1fr; }
 }
 
-/* notes */
-
-.notes {
-  list-style: none;
-  margin: 3rem 0 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 1px;
-  background: var(--line);
-  border: 1px solid var(--line);
-}
-
-.note {
-  background: var(--bg);
-  padding: 2rem 1.6rem;
-  transition: background-color 0.3s ease;
-}
-.note:hover { background: var(--surface); }
-.note__no { color: var(--accent); display: block; margin-bottom: 1rem; }
-.note p { color: var(--muted); }
-.note strong { color: var(--ink); display: block; margin-bottom: 0.3rem; font-size: 1.1rem; }
-
-/* interests */
-
-.interests {
-  list-style: none;
-  margin: 3rem 0 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
-  gap: 1px;
-  background: var(--line);
-  border: 1px solid var(--line);
-}
-
-.icard {
-  background: var(--bg);
-  padding: 1.8rem 1.6rem;
-  transition: background-color 0.3s ease;
-}
-.icard:hover { background: var(--surface); }
-
-.icard__art {
-  display: block;
-  width: 100%;
-  max-width: 230px;
-  height: auto;
-  color: var(--muted);
-  margin-bottom: 1.3rem;
-  transition: color 0.3s ease;
-}
-.icard:hover .icard__art { color: var(--ink); }
-.icard__art .acc { stroke: var(--accent); }
-.icard__art circle.acc[fill="currentColor"],
-.icard__art .acc[fill="currentColor"] { fill: var(--accent); stroke: none; }
-
-.icard__tag { color: var(--accent); font-size: 0.65rem; }
-.icard h3 { font-size: 1.15rem; margin-top: 0.5rem; }
-.icard p { color: var(--muted); margin-top: 0.4rem; font-size: 0.95rem; }
-
-/* schematic micro-animations */
-.flow {
-  stroke-dasharray: 5 5;
-  animation: flow 1.5s linear infinite;
-}
-@keyframes flow { to { stroke-dashoffset: -20; } }
-
-.blink { animation: blink 1.4s steps(2, start) infinite; }
-@keyframes blink { 50% { opacity: 0; } }
-
 /* contact */
 
 .section--contact { padding-bottom: clamp(6rem, 16vh, 11rem); }
@@ -657,6 +586,6 @@ main.breaking { filter: url(#wreck); }
   html { scroll-behavior: auto; }
   .js .reveal { opacity: 1; transform: none; transition: none; }
   .pulse { animation: none; }
-  .btn, .row, .note { transition: none; }
+  .btn, .row { transition: none; }
   .flow, .blink { animation: none; }
 }
