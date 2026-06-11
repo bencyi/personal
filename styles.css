@@ -492,12 +492,6 @@ p { margin: 0; }
 
 .section--contact { padding-bottom: clamp(6rem, 16vh, 11rem); }
 
-.contact__big {
-  font-size: clamp(3rem, 10vw, 7.5rem);
-  text-transform: uppercase;
-  font-variation-settings: "wdth" 115;
-}
-
 .cform {
   margin-top: 2.6rem;
   max-width: 44rem;
