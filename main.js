@@ -64,21 +64,25 @@
     toastTimer = setTimeout(function () { toast.classList.remove("show"); }, ms || 2600);
   }
 
-  /* ---------- copy email ---------- */
+  /* ---------- contact form ----------
+     No backend, no exposed address: the form assembles a mailto at submit
+     time. The address only exists base64-encoded here, never in markup. */
 
-  document.querySelectorAll("[data-copy]").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      var text = btn.getAttribute("data-copy");
-      var done = function () { showToast("COPIED — " + text.toUpperCase()); };
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(done, function () {
-          window.location.href = "mailto:" + text;
-        });
-      } else {
-        window.location.href = "mailto:" + text;
-      }
+  var contactForm = document.getElementById("contactForm");
+  if (contactForm) {
+    contactForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var addr = atob("YmVuY3lpQG1lLmNvbQ==");
+      var data = new FormData(contactForm);
+      var subject = "Website message from " + data.get("name");
+      var body = data.get("message") +
+        "\n\n— " + data.get("name") + " <" + data.get("email") + ">";
+      window.location.href = "mailto:" + addr +
+        "?subject=" + encodeURIComponent(subject) +
+        "&body=" + encodeURIComponent(body);
+      showToast("OPENING YOUR MAIL APP…");
     });
-  });
+  }
 
   /* ---------- the name is a physics toy ----------
      Every glyph of the ASCII art becomes a particle on a canvas. On load

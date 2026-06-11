@@ -44,7 +44,6 @@
     "jobTitle": "CEO & Co-Founder",
     "worksFor": { "@type": "Organization", "name": "RestoreFast", "url": "https://www.restorefast.com" },
     "alumniOf": { "@type": "CollegeOrUniversity", "name": "University of Maryland - College Park" },
-    "email": "mailto:bencyi@me.com",
     "address": { "@type": "PostalAddress", "addressLocality": "Austin", "addressRegion": "TX", "addressCountry": "US" },
     "sameAs": [
       "https://www.linkedin.com/in/benjamincyi",
@@ -119,9 +118,7 @@
 
       <div class="hero__cta">
         <a class="btn" href="#work">What I do <span aria-hidden="true">↓</span></a>
-        <button class="btn btn--ghost mono" type="button" data-copy="bencyi@me.com">
-          bencyi@me.com
-        </button>
+        <a class="btn btn--ghost mono" href="#contact">GET IN TOUCH <span aria-hidden="true">↓</span></a>
       </div>
     </section>
 
@@ -353,11 +350,32 @@
       <p class="section__no mono reveal">04 / CONTACT</p>
       <h2 class="contact__big reveal">On call.</h2>
       <p class="section__intro reveal">
-        The fastest way to reach me is email. If a building needs help right now,
-        call <a href="https://www.restorefast.com" rel="noopener">RestoreFast</a> first — then email me.
+        Use the form — it lands straight in my inbox. If a building needs help right now,
+        call <a href="https://www.restorefast.com" rel="noopener">RestoreFast</a> first.
       </p>
+
+      <form id="contactForm" class="cform reveal">
+        <div class="cform__grid">
+          <label class="cform__field">
+            <span class="mono">NAME</span>
+            <input type="text" name="name" autocomplete="name" required>
+          </label>
+          <label class="cform__field">
+            <span class="mono">YOUR EMAIL</span>
+            <input type="email" name="email" autocomplete="email" required>
+          </label>
+        </div>
+        <label class="cform__field">
+          <span class="mono">MESSAGE</span>
+          <textarea name="message" rows="5" required></textarea>
+        </label>
+        <div class="cform__actions">
+          <button class="btn" type="submit">Send message <span aria-hidden="true">→</span></button>
+          <p class="cform__hint mono">OPENS IN YOUR MAIL APP — NOTHING IS STORED OR TRACKED.</p>
+        </div>
+      </form>
+
       <div class="contact__actions reveal">
-        <button class="btn" type="button" data-copy="bencyi@me.com">Copy my email</button>
         <a class="btn btn--ghost mono" href="Benjamin-Yi-Resume.pdf">RÉSUMÉ (PDF)</a>
         <a class="btn btn--ghost mono" href="https://www.linkedin.com/in/benjamincyi" rel="noopener">LINKEDIN <span aria-hidden="true">↗</span></a>
         <a class="btn btn--ghost mono" href="https://github.com/bencyi" rel="noopener">GITHUB <span aria-hidden="true">↗</span></a>
