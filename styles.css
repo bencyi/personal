@@ -157,12 +157,12 @@ p { margin: 0; }
 .hero {
   width: var(--w);
   margin-inline: auto;
-  min-height: 92svh;
+  min-height: 86svh;
   display: flex;
   flex-direction: column;
   justify-content: center;
   padding-top: 6rem;
-  padding-bottom: clamp(3rem, 9vh, 7rem);
+  padding-bottom: clamp(3rem, 5vh, 4.5rem);
   position: relative;
   /* Indent intro copy to the ASCII art's left edge: the art is 73 columns
      of mono (0.6em advance) centered in the column. JS refines this with
@@ -340,7 +340,7 @@ p { margin: 0; }
 .section {
   width: var(--w);
   margin-inline: auto;
-  padding-block: clamp(5rem, 12vh, 9rem);
+  padding-block: clamp(4.5rem, 9vh, 7rem);
   border-top: 1px solid var(--line);
 }
 .section:first-of-type { border-top: none; }
