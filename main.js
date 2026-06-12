@@ -471,6 +471,36 @@
       return grad;
     }
 
+    // A disk ribbon drawn as ONE filled path: the width follows a profile
+    // along the arc, so ends either close to a point ("lens" — the lensed
+    // images dissolve where they merge with the flat disk) or stay at
+    // full width ("bridge" — joins the flat ring seamlessly). No strokes,
+    // no end caps, no overlap seams.
+    function diskRibbon(rx, ry, a0, a1, width, alpha, grad, profile) {
+      var N = 60, i, p, a, w, tp;
+      function wAt(pp) {
+        tp = Math.sin(pp * Math.PI);
+        return profile === "lens"
+          ? width * Math.pow(tp, 0.8)
+          : width * (1 + 0.22 * tp);
+      }
+      g.globalAlpha = alpha;
+      g.fillStyle = grad;
+      g.beginPath();
+      for (i = 0; i <= N; i++) {
+        p = i / N; a = a0 + (a1 - a0) * p; w = wAt(p);
+        var ox = Math.cos(a) * (rx + w / 2), oy = Math.sin(a) * (ry + w / 2);
+        if (i === 0) g.moveTo(ox, oy); else g.lineTo(ox, oy);
+      }
+      for (i = N; i >= 0; i--) {
+        p = i / N; a = a0 + (a1 - a0) * p; w = wAt(p);
+        g.lineTo(Math.cos(a) * (rx - w / 2), Math.sin(a) * (ry - w / 2));
+      }
+      g.closePath();
+      g.fill();
+      g.globalAlpha = 1;
+    }
+
     // r(progress) and θ(r): shared by infall and ejection so the path
     // out is the exact time-reverse of the path in.
     function radiusAt(m, pr) { return m.r0 * (1 - pr); }
@@ -611,57 +641,66 @@
         g.translate(cx, cy);
         g.rotate(TILT);
 
-        // lensed halo hugging the photon sphere
-        g.shadowColor = "rgba(255,110,30,0.85)";
-        g.shadowBlur = Rs * 0.9;
-        g.strokeStyle = dopplerGradient(diskA * 0.5, 4.3 * Rs);
-        g.lineWidth = Rs * 0.5;
-        g.beginPath();
-        g.arc(0, 0, 2.58 * Rs, 0, Math.PI * 2);
-        g.stroke();
+        var grad = dopplerGradient(1, 4.3 * Rs);
 
-        // equatorial disk, far side (behind the shadow)
-        g.lineWidth = Rs * 1.05;
-        g.strokeStyle = dopplerGradient(diskA * 0.9, 4.3 * Rs);
+        // 1. the flat equatorial disk: one continuous ring (no seams);
+        //    the shadow will occlude what lies behind the hole
+        g.shadowColor = "rgba(255,110,30,0.75)";
+        g.shadowBlur = Rs * 0.5;
+        g.globalAlpha = diskA * 0.85;
+        g.strokeStyle = grad;
+        g.lineWidth = Rs * 0.85;
         g.beginPath();
-        g.ellipse(0, 0, 3.9 * Rs, 3.9 * Rs * SQUASH, 0, Math.PI, Math.PI * 2);
+        g.ellipse(0, 0, 3.9 * Rs, 3.9 * Rs * SQUASH, 0, 0, Math.PI * 2);
         g.stroke();
-
         g.shadowBlur = 0;
+        g.globalAlpha = 1;
 
-        // the shadow
+        // 2. the shadow
         g.fillStyle = "#000";
         g.beginPath();
         g.arc(0, 0, 2.5 * Rs, 0, Math.PI * 2);
         g.fill();
 
-        // photon ring
-        g.strokeStyle = "rgba(255,243,226," + 0.95 * diskA + ")";
+        // 3. gravitational lensing of the far side of the disk: light from
+        //    behind the hole bends over the top (bright primary image) and
+        //    under the bottom (fainter secondary image)
+        g.shadowColor = "rgba(255,110,30,0.8)";
+        g.shadowBlur = Rs * 0.45;
+        diskRibbon(2.72 * Rs, 2.72 * Rs, Math.PI * 0.16, Math.PI * 0.84,
+          Rs * 0.42, diskA * 0.5, grad, "lens");
+        diskRibbon(2.8 * Rs, 2.88 * Rs, Math.PI * 1.03, Math.PI * 1.97,
+          Rs * 0.78, diskA * 0.95, grad, "lens");
+        g.shadowBlur = 0;
+
+        // 4. photon ring
+        g.globalAlpha = diskA;
+        g.strokeStyle = "rgba(255,243,226,0.95)";
         g.lineWidth = Math.max(1.1, Rs * 0.055);
         g.shadowColor = "rgba(255,200,140,0.9)";
         g.shadowBlur = 14;
         g.beginPath();
         g.arc(0, 0, 2.6 * Rs, 0, Math.PI * 2);
         g.stroke();
-
-        // inside the photon ring nothing escapes: re-fill the shadow so
-        // no bloom from the ring or disk hazes the interior
         g.shadowBlur = 0;
+        g.globalAlpha = 1;
+
+        // 5. nothing escapes inside the photon ring: kill inward bloom
         g.fillStyle = "#000";
         g.beginPath();
-        g.arc(0, 0, 2.47 * Rs, 0, Math.PI * 2);
+        g.arc(0, 0, 2.42 * Rs, 0, Math.PI * 2);
         g.fill();
 
-        // equatorial disk, near side (in front of the shadow)
+        // 6. the near-side crossing of the flat disk passes in front of
+        //    the shadow; the bridge profile matches the flat ring's width
+        //    at both ends so the joints are invisible
+        var gapA = Math.acos(2.42 / 3.9);
         g.shadowColor = "rgba(255,110,30,0.7)";
-        g.shadowBlur = Rs * 0.45;
-        g.lineWidth = Rs * 1.05;
-        g.strokeStyle = dopplerGradient(diskA, 4.3 * Rs);
-        g.beginPath();
-        g.ellipse(0, 0, 3.9 * Rs, 3.9 * Rs * SQUASH, 0, 0, Math.PI);
-        g.stroke();
-
+        g.shadowBlur = Rs * 0.4;
+        diskRibbon(3.9 * Rs, 3.9 * Rs * SQUASH, gapA - 0.06, Math.PI - gapA + 0.06,
+          Rs * 0.85, diskA * 0.92, grad, "bridge");
         g.shadowBlur = 0;
+
         drawSparks(Rs, diskA);
         g.restore();
       }
