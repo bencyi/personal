@@ -303,23 +303,6 @@
     });
   }
 
-  /* ---------- turbulence scale animator (powers the footer easter egg) ---------- */
-
-  var wreckMap = document.getElementById("wreckMap");
-
-  function animateScale(from, to, dur, done) {
-    if (!wreckMap) { if (done) done(); return; }
-    var t0 = performance.now();
-    function step(now) {
-      var p = Math.min((now - t0) / dur, 1);
-      var eased = 1 - Math.pow(1 - p, 3); // ease-out cubic
-      wreckMap.setAttribute("scale", String(from + (to - from) * eased));
-      if (p < 1) requestAnimationFrame(step);
-      else if (done) done();
-    }
-    requestAnimationFrame(step);
-  }
-
   /* ---------- reveal on scroll ---------- */
 
   var revealEls = document.querySelectorAll(".reveal");
@@ -381,34 +364,353 @@
     counts.forEach(function (el) { cio.observe(el); });
   }
 
-  /* ---------- footer easter egg: break the page, then restore it ----------
-     On-brand demo: damage happens, response is fast, order is restored,
-     and the response time is documented. */
+  /* ---------- footer easter egg: total gravitational collapse ----------
+     BREAK THIS PAGE drops the site into a black hole at screen center.
+     Every block becomes infalling matter on a Keplerian spiral
+     (ω ∝ r^-3/2), spaghettifies radially, and redshift-fades crossing
+     the photon sphere. The hole itself: black shadow at 2.5 Rs, photon
+     ring just outside it, a tilted accretion disk with relativistic
+     doppler beaming (approaching side beamed white-hot), a lensed halo,
+     gravitationally lensed background stars, and infalling streams that
+     slow asymptotically near the horizon (time dilation). Then it
+     evaporates — flash, shockwave, Hawking burst — and all matter is
+     ejected back along reversed spirals to exactly where it was. */
 
   var breakBtn = document.getElementById("breakBtn");
-  var main = document.querySelector("main");
-  var breaking = false;
+  var collapsing = false;
 
-  if (breakBtn && main) {
+  if (breakBtn) {
     breakBtn.addEventListener("click", function () {
       if (reduced) {
         showToast("NOTHING TO BREAK — REDUCED MOTION IS ON. SMART.");
         return;
       }
-      if (breaking) return;
-      breaking = true;
-      var t0 = performance.now();
-      main.classList.add("breaking");
-      animateScale(0, 45, 450, function () {
-        setTimeout(function () {
-          animateScale(45, 0, 1100, function () {
-            main.classList.remove("breaking");
-            var secs = ((performance.now() - t0) / 1000).toFixed(1);
-            showToast("INCIDENT CONTAINED — RESPONSE TIME " + secs + "s. THAT'S THE JOB.", 3400);
-            breaking = false;
-          });
-        }, 500);
+      if (collapsing) return;
+      collapsing = true;
+      runBlackHole(function () { collapsing = false; });
+    });
+  }
+
+  function runBlackHole(allDone) {
+    var W = window.innerWidth, H = window.innerHeight;
+    var cx = W / 2, cy = H / 2;
+    var RS = Math.min(W, H) * 0.082;   // Schwarzschild radius at full mass
+    var TILT = -0.16;                  // accretion disk inclination
+    var SQUASH = 0.27;                 // disk plane foreshortening
+
+    var T_FALL = 2400, T_HOLD = 1200, T_BOOM = 1900;
+    var T_END = T_FALL + T_HOLD + T_BOOM;
+
+    var cv = document.createElement("canvas");
+    cv.className = "bh-canvas";
+    cv.setAttribute("aria-hidden", "true");
+    document.body.appendChild(cv);
+    var g = cv.getContext("2d");
+    var dpr = window.devicePixelRatio || 1;
+    cv.width = W * dpr;
+    cv.height = H * dpr;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    document.documentElement.classList.add("bh-lock");
+
+    // ----- the matter: every visible block of the page -----
+    var matter = [];
+    var maxR = 1;
+    document.querySelectorAll(
+      "header.site-head, footer.site-foot, .hero > *, .stats__grid > *, .section > *"
+    ).forEach(function (el) {
+      var r = el.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      var ex = r.left + r.width / 2;
+      var ey = r.top + r.height / 2;
+      var dx = ex - cx, dy = ey - cy;
+      var r0 = Math.sqrt(dx * dx + dy * dy) || 1;
+      if (r0 > maxR) maxR = r0;
+      matter.push({
+        el: el, ex: ex, ey: ey, r0: r0,
+        th0: Math.atan2(dy, dx),
+        oldTransition: el.style.transition
       });
     });
+    matter.forEach(function (m) {
+      m.fallDelay = 120 + (m.r0 / maxR) * 560;  // nearest matter falls first
+      m.outDelay = 260 + (m.r0 / maxR) * 340;   // ejected after the flash clears
+      m.swirl = 2.1 + Math.random() * 1.5;      // total spiral sweep (rad)
+      m.el.style.transition = "none";           // .reveal has a transform transition
+      m.el.style.willChange = "transform, opacity";
+    });
+
+    // ----- lensed backdrop stars -----
+    var stars = [];
+    for (var i = 0; i < 150; i++) {
+      stars.push({
+        x: Math.random() * W, y: Math.random() * H,
+        m: 0.3 + Math.random() * 0.7, tw: Math.random() * 7
+      });
+    }
+
+    var sparks = [];   // accretion streams
+    var burst = [];    // Hawking-burst particles
+    var burstMade = false;
+
+    function easeOutCubic(x) { return 1 - Math.pow(1 - x, 3); }
+    function easeInCubic(x) { return x * x * x; }
+    function clamp01(x) { return x < 0 ? 0 : x > 1 ? 1 : x; }
+
+    // Relativistic doppler beaming across the disk: the side rotating
+    // toward the viewer is beamed bright and hot, the receding side red.
+    function dopplerGradient(alpha, rOut) {
+      var grad = g.createLinearGradient(-rOut, 0, rOut, 0);
+      grad.addColorStop(0, "rgba(255,249,240," + alpha + ")");
+      grad.addColorStop(0.45, "rgba(255,122,38," + alpha * 0.85 + ")");
+      grad.addColorStop(1, "rgba(120,28,6," + alpha * 0.5 + ")");
+      return grad;
+    }
+
+    // r(progress) and θ(r): shared by infall and ejection so the path
+    // out is the exact time-reverse of the path in.
+    function radiusAt(m, pr) { return m.r0 * (1 - pr); }
+    function angleAt(m, r) {
+      return m.th0 + m.swirl * (Math.sqrt(m.r0 / Math.max(r, 8)) - 1);
+    }
+
+    function placeMatter(m, pr, op) {
+      var r = radiusAt(m, pr);
+      var th = angleAt(m, r);
+      var x = cx + r * Math.cos(th);
+      var y = cy + r * Math.sin(th);
+      var stretch = 1 + 2.1 * pr;               // tidal stretch, radial
+      var shrink = 0.16 + 0.84 * (1 - pr);
+      var sr = Math.max(shrink * stretch, 0.02);
+      var st = Math.max(shrink / stretch, 0.02);
+      m.el.style.transform =
+        "translate(" + (x - m.ex).toFixed(2) + "px," + (y - m.ey).toFixed(2) + "px) " +
+        "rotate(" + th.toFixed(4) + "rad) scale(" + sr.toFixed(3) + "," + st.toFixed(3) + ") " +
+        "rotate(" + (-th).toFixed(4) + "rad)";
+      m.el.style.opacity = op;
+      return r;
+    }
+
+    function drawSparks(side, Rs, diskA) {
+      for (var i = 0; i < sparks.length; i++) {
+        var s = sparks[i];
+        if (Math.sin(s.th) * side < 0) continue;
+        var heat = clamp01((s.r - 2 * Rs) / (5 * Rs));
+        var a = clamp01((s.r - 1.55 * Rs) / Rs) * diskA * 0.9;
+        if (a <= 0) continue;
+        g.strokeStyle = "rgba(" + (255) + "," +
+          Math.round(120 + 135 * (1 - heat) * 0.9) + "," +
+          Math.round(40 + 160 * (1 - heat)) + "," + a + ")";
+        g.lineWidth = s.sz;
+        g.beginPath();
+        g.moveTo(s.px, s.py);
+        g.lineTo(s.r * Math.cos(s.th), s.r * Math.sin(s.th) * SQUASH);
+        g.stroke();
+      }
+    }
+
+    var t0 = performance.now();
+    var last = t0;
+
+    function frame(now) {
+      var t = now - t0;
+      var dt = Math.min(Math.max((now - last) / 16.7, 0.4), 2.5);
+      last = now;
+
+      var Rs, veil, diskA, bp = 0;
+      var inBoom = t >= T_FALL + T_HOLD;
+      if (!inBoom) {
+        Rs = RS * easeOutCubic(clamp01(t / 1500));
+        veil = 0.94 * easeInCubic(clamp01(t / T_FALL));
+        diskA = 0.12 + 0.88 * clamp01(t / T_FALL);
+      } else {
+        bp = clamp01((t - T_FALL - T_HOLD) / T_BOOM);
+        Rs = RS * (1 - easeOutCubic(bp));   // evaporation runs away fast
+        veil = 0.94 * Math.max(0, 1 - bp * 1.8);
+        diskA = Math.max(0, 1 - bp * 1.3);  // the hole stays lit as it shrinks
+      }
+      Rs *= 1 + 0.012 * Math.sin(t / 240);  // the hole breathes
+
+      // ----- move the matter -----
+      for (var i = 0; i < matter.length; i++) {
+        var m = matter[i];
+        if (!inBoom) {
+          var p = clamp01((t - m.fallDelay) / 1650);
+          var pr = easeInCubic(p);              // gravity accelerates
+          var r = radiusAt(m, pr);
+          // redshift fade approaching the photon sphere
+          var op = r < Rs * 3.2 ? clamp01((r - Rs * 1.15) / (Rs * 2.05)) : 1;
+          placeMatter(m, pr, op.toFixed(3));
+        } else {
+          var q = clamp01((t - T_FALL - T_HOLD - m.outDelay) / 1150);
+          var prOut = 1 - easeOutCubic(q);      // exact time-reverse
+          placeMatter(m, prOut, clamp01(q * 2.4).toFixed(3));
+        }
+      }
+
+      // ----- paint the hole -----
+      g.clearRect(0, 0, W, H);
+
+      if (veil > 0) {
+        g.fillStyle = "rgba(2,2,4," + veil + ")";
+        g.fillRect(0, 0, W, H);
+      }
+
+      // lensed stars: deflection ∝ 1/b², capture below ~2.7 Rs
+      if (veil > 0.2) {
+        for (var si = 0; si < stars.length; si++) {
+          var s = stars[si];
+          var sdx = s.x - cx, sdy = s.y - cy;
+          var b = Math.sqrt(sdx * sdx + sdy * sdy);
+          if (b < 2.7 * Rs) continue;
+          var f = 1 + (2.2 * Rs * Rs) / (b * b);
+          var a = veil * 0.8 * s.m * (0.55 + 0.45 * Math.sin(t / 600 + s.tw));
+          g.fillStyle = "rgba(236,236,255," + a + ")";
+          g.fillRect(cx + sdx * f, cy + sdy * f, 1.5, 1.5);
+        }
+      }
+
+      if (Rs > 2) {
+        // accretion streams: Keplerian ω ∝ r^-3/2, with gravitational
+        // time dilation freezing them as they near the horizon
+        if (!inBoom && t < T_FALL + T_HOLD * 0.7 && sparks.length < 240) {
+          for (var n = 0; n < 3; n++) {
+            sparks.push({
+              r: (4.5 + Math.random() * 4.5) * Math.max(Rs, RS * 0.4),
+              th: Math.random() * Math.PI * 2,
+              sz: 0.7 + Math.random() * 1.5, px: 0, py: 0
+            });
+          }
+        }
+        for (var sp = 0; sp < sparks.length; sp++) {
+          var k = sparks[sp];
+          k.px = k.r * Math.cos(k.th);
+          k.py = k.r * Math.sin(k.th) * SQUASH;
+          var dil = Math.sqrt(Math.max(0.02, 1 - (2 * Rs) / Math.max(k.r, 2 * Rs + 0.5)));
+          k.th += (0.05 * Math.pow((3 * Rs) / Math.max(k.r, 1), 1.5) + 0.006) * dt;
+          k.r -= 0.0065 * k.r * dil * dt;
+        }
+
+        g.save();
+        g.translate(cx, cy);
+        g.rotate(TILT);
+
+        // lensed halo hugging the photon sphere
+        g.shadowColor = "rgba(255,110,30,0.85)";
+        g.shadowBlur = Rs * 0.9;
+        g.strokeStyle = dopplerGradient(diskA * 0.5, 4.3 * Rs);
+        g.lineWidth = Rs * 0.5;
+        g.beginPath();
+        g.arc(0, 0, 2.58 * Rs, 0, Math.PI * 2);
+        g.stroke();
+
+        // equatorial disk, far side (behind the shadow)
+        g.lineWidth = Rs * 1.05;
+        g.strokeStyle = dopplerGradient(diskA * 0.9, 4.3 * Rs);
+        g.beginPath();
+        g.ellipse(0, 0, 3.9 * Rs, 3.9 * Rs * SQUASH, 0, Math.PI, Math.PI * 2);
+        g.stroke();
+
+        g.shadowBlur = 0;
+        drawSparks(-1, Rs, diskA);
+
+        // the shadow
+        g.fillStyle = "#000";
+        g.beginPath();
+        g.arc(0, 0, 2.5 * Rs, 0, Math.PI * 2);
+        g.fill();
+
+        // photon ring
+        g.strokeStyle = "rgba(255,243,226," + 0.95 * diskA + ")";
+        g.lineWidth = Math.max(1.1, Rs * 0.055);
+        g.shadowColor = "rgba(255,200,140,0.9)";
+        g.shadowBlur = 14;
+        g.beginPath();
+        g.arc(0, 0, 2.6 * Rs, 0, Math.PI * 2);
+        g.stroke();
+
+        // inside the photon ring nothing escapes: re-fill the shadow so
+        // no bloom from the ring or disk hazes the interior
+        g.shadowBlur = 0;
+        g.fillStyle = "#000";
+        g.beginPath();
+        g.arc(0, 0, 2.47 * Rs, 0, Math.PI * 2);
+        g.fill();
+
+        // equatorial disk, near side (in front of the shadow)
+        g.shadowColor = "rgba(255,110,30,0.7)";
+        g.shadowBlur = Rs * 0.45;
+        g.lineWidth = Rs * 1.05;
+        g.strokeStyle = dopplerGradient(diskA, 4.3 * Rs);
+        g.beginPath();
+        g.ellipse(0, 0, 3.9 * Rs, 3.9 * Rs * SQUASH, 0, 0, Math.PI);
+        g.stroke();
+
+        g.shadowBlur = 0;
+        drawSparks(1, Rs, diskA);
+        g.restore();
+      }
+
+      // ----- evaporation: flash, shockwave, Hawking burst -----
+      if (inBoom) {
+        var tb = t - T_FALL - T_HOLD;
+        if (!burstMade) {
+          burstMade = true;
+          for (var bi = 0; bi < 110; bi++) {
+            burst.push({
+              th: Math.random() * Math.PI * 2,
+              r: 2.6 * RS,
+              v: 6 + Math.random() * 16
+            });
+          }
+        }
+        if (tb < 430) {
+          var fa = 1 - tb / 430;
+          var fr = 3.2 * RS + tb * 2.4;
+          var fg = g.createRadialGradient(cx, cy, 0, cx, cy, fr);
+          fg.addColorStop(0, "rgba(255,252,245," + fa + ")");
+          fg.addColorStop(0.5, "rgba(255,180,90," + fa * 0.55 + ")");
+          fg.addColorStop(1, "rgba(255,120,40,0)");
+          g.fillStyle = fg;
+          g.fillRect(0, 0, W, H);
+        }
+        var ringR = easeOutCubic(bp) * Math.hypot(W, H) * 0.62;
+        g.strokeStyle = "rgba(255,240,224," + 0.5 * (1 - bp) + ")";
+        g.lineWidth = 2 + 9 * (1 - bp);
+        g.beginPath();
+        g.arc(cx, cy, ringR, 0, Math.PI * 2);
+        g.stroke();
+        for (var bj = 0; bj < burst.length; bj++) {
+          var h = burst[bj];
+          h.r += h.v * dt;
+          var ha = Math.max(0, 1 - bp * 1.4);
+          if (ha <= 0) continue;
+          g.strokeStyle = "rgba(255,226,190," + ha * 0.8 + ")";
+          g.lineWidth = 1;
+          g.beginPath();
+          g.moveTo(cx + (h.r - 7) * Math.cos(h.th), cy + (h.r - 7) * Math.sin(h.th));
+          g.lineTo(cx + h.r * Math.cos(h.th), cy + h.r * Math.sin(h.th));
+          g.stroke();
+        }
+      }
+
+      if (t < T_END) {
+        requestAnimationFrame(frame);
+      } else {
+        // hand the universe back, exactly as it was
+        matter.forEach(function (m) {
+          m.el.style.transform = "";
+          m.el.style.opacity = "";
+          void m.el.offsetWidth; // settle before re-enabling transitions
+          m.el.style.transition = m.oldTransition || "";
+          m.el.style.willChange = "";
+        });
+        cv.remove();
+        document.documentElement.classList.remove("bh-lock");
+        showToast("SINGULARITY RESOLVED — ALL INFORMATION RECOVERED.", 3400);
+        allDone();
+      }
+    }
+    requestAnimationFrame(frame);
   }
 })();
