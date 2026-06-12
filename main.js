@@ -495,20 +495,31 @@
       return r;
     }
 
-    function drawSparks(side, Rs, diskA) {
+    function drawSparks(Rs, diskA) {
+      var occR2 = 2.5 * Rs * 2.5 * Rs;
       for (var i = 0; i < sparks.length; i++) {
         var s = sparks[i];
-        if (Math.sin(s.th) * side < 0) continue;
         var heat = clamp01((s.r - 2 * Rs) / (5 * Rs));
         var a = clamp01((s.r - 1.55 * Rs) / Rs) * diskA * 0.9;
         if (a <= 0) continue;
+        var ex = s.r * Math.cos(s.th);
+        var ey = s.r * Math.sin(s.th) * SQUASH;
+        // Behind the hole, sparks are swallowed by the shadow — but the
+        // disk has thickness, so dissolve smoothly across the plane
+        // instead of cutting at a hard line. Per-spark jitter keeps the
+        // boundary organic.
+        if (ex * ex + ey * ey < occR2) {
+          var f = clamp01((Math.sin(s.th) + s.jz + 0.06) / 0.3);
+          a *= f * f * (3 - 2 * f); // smoothstep
+          if (a <= 0.01) continue;
+        }
         g.strokeStyle = "rgba(" + (255) + "," +
           Math.round(120 + 135 * (1 - heat) * 0.9) + "," +
           Math.round(40 + 160 * (1 - heat)) + "," + a + ")";
         g.lineWidth = s.sz;
         g.beginPath();
         g.moveTo(s.px, s.py);
-        g.lineTo(s.r * Math.cos(s.th), s.r * Math.sin(s.th) * SQUASH);
+        g.lineTo(ex, ey);
         g.stroke();
       }
     }
@@ -582,7 +593,8 @@
             sparks.push({
               r: (4.5 + Math.random() * 4.5) * Math.max(Rs, RS * 0.4),
               th: Math.random() * Math.PI * 2,
-              sz: 0.7 + Math.random() * 1.5, px: 0, py: 0
+              sz: 0.7 + Math.random() * 1.5, px: 0, py: 0,
+              jz: (Math.random() - 0.5) * 0.22
             });
           }
         }
@@ -616,7 +628,6 @@
         g.stroke();
 
         g.shadowBlur = 0;
-        drawSparks(-1, Rs, diskA);
 
         // the shadow
         g.fillStyle = "#000";
@@ -651,7 +662,7 @@
         g.stroke();
 
         g.shadowBlur = 0;
-        drawSparks(1, Rs, diskA);
+        drawSparks(Rs, diskA);
         g.restore();
       }
 
