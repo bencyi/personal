@@ -415,6 +415,9 @@
     cv.style.height = H + "px";
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
 
+    // Light is painted into offscreen layers (far side / near side of the
+    // disk), then composited additively three times — wide bloom, tight
+    // glow, crisp core — so the disk reads as light, not shapes.
     document.documentElement.classList.add("bh-lock");
 
     // ----- the matter: every visible block of the page -----
@@ -461,45 +464,115 @@
     function easeInCubic(x) { return x * x * x; }
     function clamp01(x) { return x < 0 ? 0 : x > 1 ? 1 : x; }
 
-    // Relativistic doppler beaming across the disk: the side rotating
-    // toward the viewer is beamed bright and hot, the receding side red.
-    function dopplerGradient(alpha, rOut) {
-      var grad = g.createLinearGradient(-rOut, 0, rOut, 0);
-      grad.addColorStop(0, "rgba(255,249,240," + alpha + ")");
-      grad.addColorStop(0.45, "rgba(255,122,38," + alpha * 0.85 + ")");
-      grad.addColorStop(1, "rgba(120,28,6," + alpha * 0.5 + ")");
-      return grad;
+    // Relativistic doppler beaming: d = 1 on the approaching (left) limb,
+    // 0 on the receding limb. Color runs deep red → orange → white-hot.
+    function dopplerAt(a) {
+      return (1 - Math.cos(a)) / 2;
+    }
+    function heatColor(d, alpha) {
+      var r, gg, b;
+      if (d < 0.55) {
+        var u = d / 0.55;
+        r = 150 + (255 - 150) * u; gg = 38 + (122 - 38) * u; b = 12 + (38 - 12) * u;
+      } else {
+        var v = (d - 0.55) / 0.45;
+        r = 255; gg = 122 + (251 - 122) * v; b = 38 + (244 - 38) * v;
+      }
+      return "rgba(" + (r | 0) + "," + (gg | 0) + "," + (b | 0) + "," + alpha + ")";
     }
 
-    // A disk ribbon drawn as ONE filled path: the width follows a profile
-    // along the arc, so ends either close to a point ("lens" — the lensed
-    // images dissolve where they merge with the flat disk) or stay at
-    // full width ("bridge" — joins the flat ring seamlessly). No strokes,
-    // no end caps, no overlap seams.
-    function diskRibbon(rx, ry, a0, a1, width, alpha, grad, profile) {
-      var N = 60, i, p, a, w, tp;
-      function wAt(pp) {
-        tp = Math.sin(pp * Math.PI);
-        return profile === "lens"
-          ? width * Math.pow(tp, 0.8)
-          : width * (1 + 0.22 * tp);
-      }
-      g.globalAlpha = alpha;
-      g.fillStyle = grad;
-      g.beginPath();
+    // A disk ribbon tessellated into quads, each filled with its own
+    // doppler color — gradients flow ALONG the arc with no seams, no
+    // strokes, no end caps. widthFn/alphaFn are functions of progress p
+    // and angle a.
+    function ribbon(ctx2, rx, ry, a0, a1, widthFn, alphaScale) {
+      var N = 72, i, a, w;
+      var ox = [], oy = [], ix = [], iy = [];
       for (i = 0; i <= N; i++) {
-        p = i / N; a = a0 + (a1 - a0) * p; w = wAt(p);
-        var ox = Math.cos(a) * (rx + w / 2), oy = Math.sin(a) * (ry + w / 2);
-        if (i === 0) g.moveTo(ox, oy); else g.lineTo(ox, oy);
+        a = a0 + (a1 - a0) * (i / N);
+        w = widthFn(i / N, a);
+        ox.push(Math.cos(a) * (rx + w / 2)); oy.push(Math.sin(a) * (ry + w / 2));
+        ix.push(Math.cos(a) * (rx - w / 2)); iy.push(Math.sin(a) * (ry - w / 2));
       }
-      for (i = N; i >= 0; i--) {
-        p = i / N; a = a0 + (a1 - a0) * p; w = wAt(p);
-        g.lineTo(Math.cos(a) * (rx - w / 2), Math.sin(a) * (ry - w / 2));
+      for (i = 0; i < N; i++) {
+        a = a0 + (a1 - a0) * ((i + 0.5) / N);
+        var d = dopplerAt(a);
+        ctx2.fillStyle = heatColor(d, alphaScale * (0.45 + 0.55 * Math.pow(d, 1.1)));
+        ctx2.beginPath();
+        ctx2.moveTo(ox[i], oy[i]);
+        ctx2.lineTo(ox[i + 1], oy[i + 1]);
+        ctx2.lineTo(ix[i + 1], iy[i + 1]);
+        ctx2.lineTo(ix[i], iy[i]);
+        ctx2.closePath();
+        ctx2.fill();
       }
-      g.closePath();
-      g.fill();
-      g.globalAlpha = 1;
     }
+
+    // The light pattern only depends on Rs — a uniform scale — so the
+    // expensive part (Gaussian bloom) is pre-rendered ONCE into a static
+    // glow bitmap, and each frame just draws it scaled by Rs/RS.
+    // Three additive passes: wide bloom, tight glow, crisp core.
+    function buildGlow(paint) {
+      var B = RS * 14;   // CSS-px box around the hole, covers wings + bloom
+      var GR = 0.6;      // pre-render resolution scale
+      var px = Math.ceil(B * GR);
+      var lay = document.createElement("canvas");
+      lay.width = lay.height = px;
+      var lc = lay.getContext("2d");
+      lc.setTransform(GR, 0, 0, GR, px / 2, px / 2);
+      lc.rotate(TILT);
+      paint(lc);
+      var glow = document.createElement("canvas");
+      glow.width = glow.height = px;
+      var gc = glow.getContext("2d");
+      gc.globalCompositeOperation = "lighter";
+      gc.filter = "blur(" + (RS * 0.5 * GR).toFixed(1) + "px)";
+      gc.globalAlpha = 0.6;
+      gc.drawImage(lay, 0, 0);
+      gc.filter = "blur(" + (RS * 0.15 * GR).toFixed(1) + "px)";
+      gc.globalAlpha = 0.85;
+      gc.drawImage(lay, 0, 0);
+      gc.filter = "none";
+      gc.globalAlpha = 1;
+      gc.drawImage(lay, 0, 0);
+      return { c: glow, B: B };
+    }
+
+    var rDiskX = 4.15 * RS;            // wings stretch wide past the hole
+    var rDiskY = 3.3 * RS * SQUASH;
+    // thin near the hole, flaring into wings that taper to sharp points
+    function diskW(p, a) {
+      var c = Math.abs(Math.cos(a));
+      return RS * (0.55 + 1.05 * Math.pow(c, 2.0)) * (1 - Math.pow(c, 22) * 0.92);
+    }
+
+    var backGlow = buildGlow(function (c) {
+      // far half of the flat disk (behind the hole)
+      ribbon(c, rDiskX, rDiskY, Math.PI, Math.PI * 2, diskW, 0.9);
+      // primary lensed image arcing over the top of the shadow
+      ribbon(c, 2.82 * RS, 2.92 * RS, Math.PI * 1.02, Math.PI * 1.98,
+        function (p) { return RS * 0.72 * Math.pow(Math.sin(p * Math.PI), 0.7); }, 0.95);
+      // secondary image hugging beneath
+      ribbon(c, 2.68 * RS, 2.68 * RS, Math.PI * 0.1, Math.PI * 0.9,
+        function (p) { return RS * 0.3 * Math.pow(Math.sin(p * Math.PI), 0.75); }, 0.5);
+    });
+
+    var frontGlow = buildGlow(function (c) {
+      // near half of the flat disk — crosses in front of the shadow
+      ribbon(c, rDiskX, rDiskY, 0, Math.PI, diskW, 0.95);
+      // photon ring: the brightest line in the scene
+      c.strokeStyle = "rgba(255,247,235,0.9)";
+      c.lineWidth = Math.max(1, RS * 0.05);
+      c.beginPath();
+      c.arc(0, 0, 2.6 * RS, 0, Math.PI * 2);
+      c.stroke();
+      // beamed hot segment on the approaching side
+      c.strokeStyle = "rgba(255,253,248,1)";
+      c.lineWidth = Math.max(1.4, RS * 0.085);
+      c.beginPath();
+      c.arc(0, 0, 2.6 * RS, Math.PI * 0.72, Math.PI * 1.28);
+      c.stroke();
+    });
 
     // r(progress) and θ(r): shared by infall and ejection so the path
     // out is the exact time-reverse of the path in.
@@ -637,70 +710,31 @@
           k.r -= 0.0065 * k.r * dil * dt;
         }
 
+        // ---- composite: far light, shadow, near light ----
+        var s = Rs / RS;
+        var sz = backGlow.B * s;
+        var flick = 1 + 0.05 * Math.sin(t / 130) * Math.sin(t / 71);
+
         g.save();
+        g.globalCompositeOperation = "lighter";
+        g.globalAlpha = Math.min(1, diskA * flick);
+        g.drawImage(backGlow.c, cx - sz / 2, cy - sz / 2, sz, sz);
+        g.restore();
+
+        g.fillStyle = "#000";
+        g.beginPath();
+        g.arc(cx, cy, 2.5 * Rs, 0, Math.PI * 2);
+        g.fill();
+
+        g.save();
+        g.globalCompositeOperation = "lighter";
+        g.globalAlpha = Math.min(1, diskA * flick);
+        g.drawImage(frontGlow.c, cx - sz / 2, cy - sz / 2, sz, sz);
+
+        // accretion streams glow additively over everything
         g.translate(cx, cy);
         g.rotate(TILT);
-
-        var grad = dopplerGradient(1, 4.3 * Rs);
-
-        // 1. the flat equatorial disk: one continuous ring (no seams);
-        //    the shadow will occlude what lies behind the hole
-        g.shadowColor = "rgba(255,110,30,0.75)";
-        g.shadowBlur = Rs * 0.5;
-        g.globalAlpha = diskA * 0.85;
-        g.strokeStyle = grad;
-        g.lineWidth = Rs * 0.85;
-        g.beginPath();
-        g.ellipse(0, 0, 3.9 * Rs, 3.9 * Rs * SQUASH, 0, 0, Math.PI * 2);
-        g.stroke();
-        g.shadowBlur = 0;
         g.globalAlpha = 1;
-
-        // 2. the shadow
-        g.fillStyle = "#000";
-        g.beginPath();
-        g.arc(0, 0, 2.5 * Rs, 0, Math.PI * 2);
-        g.fill();
-
-        // 3. gravitational lensing of the far side of the disk: light from
-        //    behind the hole bends over the top (bright primary image) and
-        //    under the bottom (fainter secondary image)
-        g.shadowColor = "rgba(255,110,30,0.8)";
-        g.shadowBlur = Rs * 0.45;
-        diskRibbon(2.72 * Rs, 2.72 * Rs, Math.PI * 0.16, Math.PI * 0.84,
-          Rs * 0.42, diskA * 0.5, grad, "lens");
-        diskRibbon(2.8 * Rs, 2.88 * Rs, Math.PI * 1.03, Math.PI * 1.97,
-          Rs * 0.78, diskA * 0.95, grad, "lens");
-        g.shadowBlur = 0;
-
-        // 4. photon ring
-        g.globalAlpha = diskA;
-        g.strokeStyle = "rgba(255,243,226,0.95)";
-        g.lineWidth = Math.max(1.1, Rs * 0.055);
-        g.shadowColor = "rgba(255,200,140,0.9)";
-        g.shadowBlur = 14;
-        g.beginPath();
-        g.arc(0, 0, 2.6 * Rs, 0, Math.PI * 2);
-        g.stroke();
-        g.shadowBlur = 0;
-        g.globalAlpha = 1;
-
-        // 5. nothing escapes inside the photon ring: kill inward bloom
-        g.fillStyle = "#000";
-        g.beginPath();
-        g.arc(0, 0, 2.42 * Rs, 0, Math.PI * 2);
-        g.fill();
-
-        // 6. the near-side crossing of the flat disk passes in front of
-        //    the shadow; the bridge profile matches the flat ring's width
-        //    at both ends so the joints are invisible
-        var gapA = Math.acos(2.42 / 3.9);
-        g.shadowColor = "rgba(255,110,30,0.7)";
-        g.shadowBlur = Rs * 0.4;
-        diskRibbon(3.9 * Rs, 3.9 * Rs * SQUASH, gapA - 0.06, Math.PI - gapA + 0.06,
-          Rs * 0.85, diskA * 0.92, grad, "bridge");
-        g.shadowBlur = 0;
-
         drawSparks(Rs, diskA);
         g.restore();
       }
@@ -721,11 +755,11 @@
         if (tb < 430) {
           var fa = 1 - tb / 430;
           var fr = 3.2 * RS + tb * 2.4;
-          var fg = g.createRadialGradient(cx, cy, 0, cx, cy, fr);
-          fg.addColorStop(0, "rgba(255,252,245," + fa + ")");
-          fg.addColorStop(0.5, "rgba(255,180,90," + fa * 0.55 + ")");
-          fg.addColorStop(1, "rgba(255,120,40,0)");
-          g.fillStyle = fg;
+          var flashG = g.createRadialGradient(cx, cy, 0, cx, cy, fr);
+          flashG.addColorStop(0, "rgba(255,252,245," + fa + ")");
+          flashG.addColorStop(0.5, "rgba(255,180,90," + fa * 0.55 + ")");
+          flashG.addColorStop(1, "rgba(255,120,40,0)");
+          g.fillStyle = flashG;
           g.fillRect(0, 0, W, H);
         }
         var ringR = easeOutCubic(bp) * Math.hypot(W, H) * 0.62;
