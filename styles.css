@@ -526,16 +526,6 @@ p { margin: 0; }
 .icard h3 { font-size: 1.15rem; margin-top: 0.5rem; }
 .icard p { color: var(--muted); margin-top: 0.4rem; font-size: 0.95rem; }
 
-/* schematic micro-animations */
-.flow {
-  stroke-dasharray: 5 5;
-  animation: flow 1.5s linear infinite;
-}
-@keyframes flow { to { stroke-dashoffset: -20; } }
-
-.blink { animation: blink 1.4s steps(2, start) infinite; }
-@keyframes blink { 50% { opacity: 0; } }
-
 /* contact */
 
 .section--contact { padding-bottom: clamp(6rem, 16vh, 11rem); }
@@ -691,5 +681,4 @@ html.bh-lock body { overflow: hidden; }
   .js .reveal { opacity: 1; transform: none; transition: none; }
   .pulse { animation: none; }
   .btn, .row { transition: none; }
-  .flow, .blink { animation: none; }
 }
