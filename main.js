@@ -409,6 +409,10 @@
     var dpr = window.devicePixelRatio || 1;
     cv.width = W * dpr;
     cv.height = H * dpr;
+    // canvas is a replaced element: inset alone won't stretch it, so pin
+    // the CSS size or high-DPR screens get a dpr-times-oversized overlay
+    cv.style.width = W + "px";
+    cv.style.height = H + "px";
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     document.documentElement.classList.add("bh-lock");
