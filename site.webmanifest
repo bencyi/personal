@@ -1,0 +1,14 @@
+{
+  "name": "Benjamin Yi",
+  "short_name": "Ben Yi",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#0c0c0b",
+  "background_color": "#0c0c0b",
+  "display": "standalone"
+}

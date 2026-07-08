@@ -17,6 +17,12 @@ styles.css                  all site styles, dark + light themes
 main.js                     all behavior, every effect gated on prefers-reduced-motion
 404.html                    "this page suffered a total loss"
 og.png                      1200×630 social share image
+favicon.ico                 root favicon for browsers and Google Search
+favicon.svg                 scalable favicon source
+icon-48.png                 Google Search favicon fallback
+icon-192.png                high-resolution web app icon
+apple-touch-icon.png        iOS home-screen icon
+site.webmanifest            web app icon metadata
 Benjamin-Yi-Resume.pdf      downloadable résumé (linked from Contact)
 papers/
   beyond-transformers.html                  paper rendered as HTML in site design
@@ -37,6 +43,7 @@ external requests.
 - Content fully server-rendered: everything readable with JS disabled
 - Live Austin clock, count-up stats, scroll reveals via `IntersectionObserver`
 - JSON-LD `Person` schema, OG/Twitter cards, skip link, keyboard navigable
+- Root favicon assets with stable URLs for Google Search and browser surfaces
 
 ## Develop
 
