@@ -45,6 +45,44 @@ external requests.
 - JSON-LD `Person` schema, OG/Twitter cards, skip link, keyboard navigable
 - Root favicon assets with stable URLs for Google Search and browser surfaces
 
+## The interaction layer
+
+Drawn from the [ThreeUI](https://threeui.com) catalog (procedural Three.js
+backgrounds, pointer-lit browse cards, shader buttons, per-component variant
+pickers) and rebuilt here in raw WebGL and CSS — still zero dependencies.
+
+- **The hero field.** A full-bleed procedural backdrop behind the name, one
+  fragment shader with three variants: `EMBER` (a dark ground, an undulating
+  horizon, heat rising off it), `FLUX` (contours through a domain-warped noise
+  field), `MATRIX` (a noise-driven halftone lattice). Raw WebGL 1, ~90 lines of
+  GLSL, rendered at 0.7× and paused whenever the hero scrolls out of view or
+  the tab is hidden.
+- **Two ways to paint it.** The dark theme *emits* — accent glow with a pale
+  core. The paper theme *prints*: the same field is screened through a
+  30° halftone so it lands as ink rather than a smudge.
+- **The variant picker.** The `FIELD ▸ …` chip in the hero cycles the three
+  variants and persists the choice — ThreeUI's "fully customizable" idea, in
+  miniature. It only appears once a WebGL context actually exists.
+- **A dock on phones.** Below 720px the primary nav leaves the header and
+  becomes a floating pill dock with live section highlighting — navigation
+  that simply wasn't available on mobile before.
+- **Scroll progress + current section.** A hairline accent bar under the header
+  tracks scroll; nav links carry `aria-current` for the section in view. Works
+  on the paper pages too.
+- **Pointer-lit cards.** Interest cards, the two-company split, and the paper
+  rows track the cursor and light up under it.
+- **Kinetic headings.** Section headings arrive a word at a time from behind a
+  mask. Non-breaking spaces stay glued, so deliberate line breaks survive.
+- **Shader-ish buttons.** A sheen sweep and an accent bloom on the primary CTA;
+  a wipe fill on the ghost buttons.
+- **Contact rail.** The form now shares a two-column layout with a small
+  instrument card (live Austin clock) and the elsewhere links.
+
+Every one of these degrades: without JS the static CSS ember wash, the dock,
+and all content remain; without WebGL the field simply never mounts; under
+`prefers-reduced-motion` the field renders a single frozen frame, headings
+don't split, and nothing sweeps.
+
 ## Develop
 
 No tooling needed:
