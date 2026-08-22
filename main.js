@@ -22,10 +22,16 @@
       hour: "2-digit", minute: "2-digit", second: "2-digit",
       hour12: false
     });
+    var clock2 = document.getElementById("clock2");
     var tick = function () {
       var now = new Date();
-      clock.textContent = fmt.format(now);
+      var text = fmt.format(now);
+      clock.textContent = text;
       clock.dateTime = now.toISOString();
+      if (clock2) {
+        clock2.textContent = text;
+        clock2.dateTime = now.toISOString();
+      }
     };
     tick();
     setInterval(tick, 1000);
@@ -303,6 +309,361 @@
     });
   }
 
+  /* ---------- the hero field ----------
+     A procedural WebGL backdrop behind the name, in the spirit of the
+     ThreeUI background catalog: three variants sharing one fragment
+     shader — EMBER (a warped ember horizon), FLUX (domain-warped flow
+     contours), MATRIX (a noise-driven dot lattice). Raw WebGL, no
+     library. The variant picker is ThreeUI's idea too: the visitor
+     tunes the background. Falls back to the CSS wash when WebGL is
+     absent; under reduced motion it renders one frozen frame. */
+
+  var FIELDS = ["EMBER", "FLUX", "MATRIX"];
+
+  var FIELD_VERT =
+    "attribute vec2 aPos;" +
+    "void main(){ gl_Position = vec4(aPos, 0.0, 1.0); }";
+
+  var FIELD_FRAG = [
+    "precision highp float;",
+    "uniform vec2 uRes; uniform float uTime; uniform vec2 uPtr;",
+    "uniform vec3 uAccent; uniform vec3 uInk; uniform float uMode; uniform float uLight;",
+
+    "float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123); }",
+
+    "float noise(vec2 p){",
+    "  vec2 i = floor(p), f = fract(p);",
+    "  vec2 u = f * f * (3.0 - 2.0 * f);",
+    "  return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x),",
+    "             mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);",
+    "}",
+
+    "float fbm(vec2 p){",
+    "  float v = 0.0, a = 0.5;",
+    "  for (int i = 0; i < 5; i++){ v += a * noise(p); p = p * 2.03 + 7.1; a *= 0.5; }",
+    "  return v;",
+    "}",
+
+    // EMBER: a dark ground, an undulating horizon line, and heat rising
+    // off it — the ThreeUI "at the horizon" idea, redrawn in one pass.
+    "float ember(vec2 p, float t){",
+    "  float w = fbm(vec2(p.x * 0.85 + t * 0.05, t * 0.06));",
+    "  float hy = -0.66 + 0.24 * (w - 0.5);",
+    "  float d = p.y - hy;",
+    "  float plume = fbm(vec2(p.x * 1.5 - t * 0.05, p.y * 1.15 - t * 0.24));",
+    "  float glow = exp(-max(d, 0.0) * (4.1 - 2.1 * plume)) * (0.22 + 1.0 * plume);",
+    "  glow *= smoothstep(-0.10, 0.14, d);",
+    "  float line = smoothstep(0.045, 0.0, abs(d)) * (0.45 + 0.75 * plume);",
+    "  float spark = pow(fbm(p * 8.0 + vec2(t * 0.1, -t * 0.55)), 7.0) * 7.0;",
+    "  spark *= smoothstep(1.15, 0.0, d) * step(0.0, d);",
+    "  return glow * 1.2 + line * 0.9 + spark * 0.5;",
+    "}",
+
+    // FLUX: contour bands through a domain-warped field.
+    "float flux(vec2 p, float t){",
+    "  vec2 q = vec2(fbm(p * 1.15 + t * 0.05), fbm(p * 1.15 + vec2(4.3, 1.7) - t * 0.04));",
+    "  float n = fbm(p * 1.6 + q * 2.0);",
+    "  float band = abs(fract(n * 6.2 - t * 0.12) - 0.5);",
+    "  float v = smoothstep(0.05, 0.0, band) * 1.35;",
+    "  return v * (0.3 + 0.9 * smoothstep(1.35, -0.95, p.y));",
+    "}",
+
+    // MATRIX: a dot lattice whose radii breathe with drifting noise.
+    "float matrixField(vec2 p, float t){",
+    "  vec2 g = p * 13.0;",
+    "  vec2 f = fract(g) - 0.5;",
+    "  float m = fbm(floor(g) * 0.17 + vec2(t * 0.1, -t * 0.06));",
+    "  float r = 0.05 + 0.42 * pow(max(m - 0.3, 0.0) * 2.0, 1.3);",
+    "  float v = smoothstep(r, r - 0.14, length(f)) * 0.95;",
+    "  return v * (0.22 + 0.95 * smoothstep(1.3, -0.95, p.y));",
+    "}",
+
+    "void main(){",
+    "  vec2 uv = (gl_FragCoord.xy - 0.5 * uRes) / min(uRes.x, uRes.y) * 2.0;",
+    "  vec2 p = uv + uPtr * 0.14;",
+    "  float v = 0.0;",
+    "  if (uMode < 0.5) v = ember(p, uTime);",
+    "  else if (uMode < 1.5) v = flux(p, uTime);",
+    "  else v = matrixField(p, uTime);",
+    "  v *= smoothstep(2.3, 0.4, length(uv * vec2(0.7, 1.0)));",
+    "  v = clamp(v, 0.0, 1.5);",
+    // Dark theme emits light; the paper theme prints it. Screen the same
+    // field through a 30-degree halftone so it lands as ink, not a smudge.
+    "  vec2 hp = mat2(0.866, -0.5, 0.5, 0.866) * (gl_FragCoord.xy / 6.5);",
+    "  float rad = sqrt(clamp(v, 0.0, 1.0)) * 0.64;",
+    "  float ink = smoothstep(rad, rad - 0.16, length(fract(hp) - 0.5)) * step(0.09, v);",
+    // MATRIX is already a lattice — screening a lattice only makes moire,
+    // so it just gets a harder edge instead.
+    "  float screened = mix(smoothstep(0.30, 0.95, v), ink, step(uMode, 1.5));",
+    "  v = mix(v, screened, uLight);",
+    "  vec3 hot = mix(uAccent, vec3(1.0, 0.87, 0.62), smoothstep(1.05, 1.85, v));",
+    "  vec3 col = mix(hot, mix(uAccent, uInk, 0.32), uLight);",
+    "  gl_FragColor = vec4(col, clamp(v, 0.0, 1.0) * mix(0.72, 0.55, uLight));",
+    "}"
+  ].join("\n");
+
+  initHeroField();
+
+  function initHeroField() {
+    var hero = document.querySelector(".hero");
+    var ctl = document.getElementById("fieldCtl");
+    var ctlVal = document.getElementById("fieldCtlVal");
+    if (!hero || !window.WebGLRenderingContext) return;
+
+    var canvas = document.createElement("canvas");
+    canvas.className = "hero__field";
+    canvas.setAttribute("aria-hidden", "true");
+
+    var gl;
+    try {
+      gl = canvas.getContext("webgl", {
+        alpha: true, antialias: false, depth: false, stencil: false,
+        premultipliedAlpha: false, powerPreference: "low-power"
+      });
+    } catch (e) { gl = null; }
+    if (!gl) return;
+
+    var prog = link(FIELD_VERT, FIELD_FRAG);
+    if (!prog) return;
+
+    hero.insertBefore(canvas, hero.firstChild);
+
+    var buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+    var aPos = gl.getAttribLocation(prog, "aPos");
+    gl.enableVertexAttribArray(aPos);
+    gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+    var U = {};
+    ["uRes", "uTime", "uPtr", "uAccent", "uInk", "uMode", "uLight"].forEach(function (n) {
+      U[n] = gl.getUniformLocation(prog, n);
+    });
+
+    gl.useProgram(prog);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    gl.clearColor(0, 0, 0, 0);
+
+    var mode = 0;
+    try {
+      var saved = FIELDS.indexOf(localStorage.getItem("field"));
+      if (saved >= 0) mode = saved;
+    } catch (e) { /* private mode */ }
+
+    var ptr = { x: 0, y: 0, tx: 0, ty: 0 };
+    var visible = true;
+    var running = false;
+    var t0 = performance.now();
+
+    function link(vs, fs) {
+      function shader(type, src) {
+        var sh = gl.createShader(type);
+        gl.shaderSource(sh, src);
+        gl.compileShader(sh);
+        return gl.getShaderParameter(sh, gl.COMPILE_STATUS) ? sh : null;
+      }
+      var v = shader(gl.VERTEX_SHADER, vs);
+      var f = shader(gl.FRAGMENT_SHADER, fs);
+      if (!v || !f) return null;
+      var p = gl.createProgram();
+      gl.attachShader(p, v);
+      gl.attachShader(p, f);
+      gl.linkProgram(p);
+      return gl.getProgramParameter(p, gl.LINK_STATUS) ? p : null;
+    }
+
+    function rgb(name) {
+      var hex = getComputedStyle(document.documentElement).getPropertyValue(name).trim().replace("#", "");
+      if (hex.length === 3) hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+      var n = parseInt(hex, 16);
+      return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
+    }
+
+    function paint() {
+      var a = rgb("--accent");
+      var k = rgb("--ink");
+      gl.uniform3f(U.uAccent, a[0], a[1], a[2]);
+      gl.uniform3f(U.uInk, k[0], k[1], k[2]);
+      gl.uniform1f(U.uLight, document.documentElement.dataset.theme === "light" ? 1 : 0);
+      gl.uniform1f(U.uMode, mode);
+    }
+
+    function size() {
+      var r = canvas.getBoundingClientRect();
+      // render below device resolution: the field is soft by design and
+      // this keeps a full-bleed shader cheap on phones
+      var scale = Math.min(window.devicePixelRatio || 1, 1.5) * 0.7;
+      var w = Math.max(1, Math.round(r.width * scale));
+      var h = Math.max(1, Math.round(r.height * scale));
+      if (canvas.width === w && canvas.height === h) return;
+      canvas.width = w;
+      canvas.height = h;
+      gl.viewport(0, 0, w, h);
+      gl.uniform2f(U.uRes, w, h);
+    }
+
+    function draw(time) {
+      gl.uniform1f(U.uTime, time);
+      gl.uniform2f(U.uPtr, ptr.x, ptr.y);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    }
+
+    function frame(now) {
+      if (!running) return;
+      ptr.x += (ptr.tx - ptr.x) * 0.05;
+      ptr.y += (ptr.ty - ptr.y) * 0.05;
+      draw((now - t0) / 1000);
+      requestAnimationFrame(frame);
+    }
+
+    function start() {
+      if (running || reduced || !visible || document.hidden) return;
+      running = true;
+      requestAnimationFrame(frame);
+    }
+    function stop() { running = false; }
+
+    function still() { size(); paint(); draw(6.2); }
+
+    if (!reduced) {
+      hero.addEventListener("pointermove", function (e) {
+        var r = hero.getBoundingClientRect();
+        ptr.tx = ((e.clientX - r.left) / r.width - 0.5) * 2;
+        ptr.ty = -((e.clientY - r.top) / r.height - 0.5) * 2;
+      });
+      hero.addEventListener("pointerleave", function () { ptr.tx = 0; ptr.ty = 0; });
+      document.addEventListener("visibilitychange", function () {
+        if (document.hidden) stop(); else start();
+      });
+      if ("IntersectionObserver" in window) {
+        new IntersectionObserver(function (entries) {
+          visible = entries[0].isIntersecting;
+          if (visible) start(); else stop();
+        }, { threshold: 0 }).observe(hero);
+      }
+    }
+
+    var sizeTimer;
+    window.addEventListener("resize", function () {
+      clearTimeout(sizeTimer);
+      sizeTimer = setTimeout(function () { size(); if (reduced) still(); }, 150);
+    });
+
+    var themeBtn = document.getElementById("themeToggle");
+    if (themeBtn) {
+      themeBtn.addEventListener("click", function () {
+        paint();
+        if (reduced) still();
+      });
+    }
+
+    if (ctl && ctlVal) {
+      ctl.hidden = false;
+      ctlVal.textContent = FIELDS[mode];
+      ctl.addEventListener("click", function () {
+        mode = (mode + 1) % FIELDS.length;
+        ctlVal.textContent = FIELDS[mode];
+        try { localStorage.setItem("field", FIELDS[mode]); } catch (e) { /* private mode */ }
+        paint();
+        if (reduced) still();
+        showToast("FIELD — " + FIELDS[mode], 1500);
+      });
+    }
+
+    size();
+    paint();
+    draw(reduced ? 6.2 : 0);
+    canvas.classList.add("on");
+    start();
+  }
+
+  /* ---------- scroll progress + the section the reader is in ---------- */
+
+  var head = document.querySelector(".site-head");
+  var navLinks = [].slice.call(document.querySelectorAll(".site-nav a"));
+  var navTargets = navLinks.map(function (a) {
+    // paper pages link out ("../#research"), which is not a valid selector
+    var href = a.getAttribute("href") || "";
+    return href.charAt(0) === "#" ? document.querySelector(href) : null;
+  });
+
+  if (head) {
+    var pending = false;
+    var syncScroll = function () {
+      pending = false;
+      var max = document.documentElement.scrollHeight - window.innerHeight;
+      head.style.setProperty("--progress", (max > 0 ? Math.min(window.scrollY / max, 1) : 0).toFixed(4));
+
+      var line = window.innerHeight * 0.38;
+      var active = -1;
+      for (var i = 0; i < navTargets.length; i++) {
+        var el = navTargets[i];
+        if (el && el.getBoundingClientRect().top <= line) active = i;
+      }
+      for (var j = 0; j < navLinks.length; j++) {
+        if (j === active) navLinks[j].setAttribute("aria-current", "true");
+        else navLinks[j].removeAttribute("aria-current");
+      }
+    };
+    var onScroll = function () {
+      if (pending) return;
+      pending = true;
+      requestAnimationFrame(syncScroll);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    syncScroll();
+  }
+
+  /* ---------- pointer-lit cards ----------
+     Each card tracks the cursor and lights up under it, the way the
+     ThreeUI browse grid reacts to a pointer. CSS does the drawing. */
+
+  [].forEach.call(document.querySelectorAll(".spot"), function (el) {
+    var queued = false;
+    var px = 0, py = 0;
+    el.addEventListener("pointermove", function (e) {
+      px = e.clientX;
+      py = e.clientY;
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(function () {
+        queued = false;
+        var r = el.getBoundingClientRect();
+        if (!r.width || !r.height) return;
+        el.style.setProperty("--sx", (((px - r.left) / r.width) * 100).toFixed(1) + "%");
+        el.style.setProperty("--sy", (((py - r.top) / r.height) * 100).toFixed(1) + "%");
+      });
+    });
+  });
+
+  /* ---------- kinetic headings ----------
+     Section headings arrive a word at a time from behind a mask —
+     the type treatment ThreeUI leans on across its landing pages.
+     Non-breaking spaces stay glued, so deliberate line breaks survive. */
+
+  if (!reduced) {
+    [].forEach.call(document.querySelectorAll(".section h2"), function (h) {
+      if (h.children.length) return; // only split plain-text headings
+      var words = h.textContent.trim().split(/[ \t\n\r]+/);
+      if (words.length < 2) return;
+      h.textContent = "";
+      words.forEach(function (word, i) {
+        var outer = document.createElement("span");
+        outer.className = "kw";
+        outer.style.setProperty("--i", i);
+        var inner = document.createElement("span");
+        inner.textContent = word;
+        outer.appendChild(inner);
+        h.appendChild(outer);
+        if (i < words.length - 1) h.appendChild(document.createTextNode(" "));
+      });
+      h.classList.add("kinetic");
+    });
+  }
+
   /* ---------- reveal on scroll ---------- */
 
   var revealEls = document.querySelectorAll(".reveal");
@@ -421,7 +782,8 @@
     var matter = [];
     var maxR = 1;
     document.querySelectorAll(
-      "header.site-head, footer.site-foot, .hero > *, .stats__grid > *, .section > *"
+      "header.site-head, footer.site-foot, .stats__grid > *, .section > *, " +
+      ".hero > *:not(.hero__field):not(.field-ctl)"
     ).forEach(function (el) {
       var r = el.getBoundingClientRect();
       if (!r.width || !r.height) return;

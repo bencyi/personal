@@ -66,9 +66,10 @@
 
   <header class="site-head">
     <a class="mark mono" href="#top" aria-label="Benjamin Yi — back to top">B/Y</a>
-    <nav class="site-nav mono" aria-label="Primary">
+    <nav class="site-nav site-nav--dock mono" aria-label="Primary">
       <a href="#work">Work</a>
       <a href="#research">Research</a>
+      <a href="#interests">Interests</a>
       <a href="#contact">Contact</a>
     </nav>
     <button id="themeToggle" class="theme-toggle mono" type="button" aria-label="Switch color theme">
@@ -116,26 +117,34 @@
         <a class="btn" href="#work">What I do <span aria-hidden="true">↓</span></a>
         <a class="btn btn--ghost mono" href="#contact">GET IN TOUCH <span aria-hidden="true">↓</span></a>
       </div>
+
+      <!-- Variant picker for the procedural field behind the name.
+           Revealed by main.js only once a WebGL context actually exists. -->
+      <button id="fieldCtl" class="field-ctl" type="button" hidden
+              title="Cycle the procedural field behind the name">
+        <span class="field-ctl__dot" aria-hidden="true"></span>
+        FIELD<span class="field-ctl__val" id="fieldCtlVal">EMBER</span>
+      </button>
     </section>
 
     <!-- ============ STATS ============ -->
     <section class="stats" aria-label="By the numbers">
       <dl class="stats__grid">
-        <div class="stat reveal">
+        <div class="stat reveal" style="--scan-delay: 0ms">
           <dt class="mono">ANNUAL REVENUE — FROM $169K</dt>
-          <dd><span class="count" data-count="10" data-prefix="$" data-suffix="M+">$10M+</span></dd>
+          <dd><span class="count" data-count="10" data-prefix="$" data-suffix="M+">$10M+</span><span class="stat__meter" aria-hidden="true"></span></dd>
         </div>
-        <div class="stat reveal">
+        <div class="stat reveal" style="--scan-delay: 90ms">
           <dt class="mono">REVENUE PER EMPLOYEE</dt>
-          <dd>~$1M</dd>
+          <dd>~$1M<span class="stat__meter" aria-hidden="true"></span></dd>
         </div>
-        <div class="stat reveal">
+        <div class="stat reveal" style="--scan-delay: 180ms">
           <dt class="mono">AGENT RUNS IN PRODUCTION</dt>
-          <dd><span class="count" data-count="77000" data-suffix="+">77,000+</span></dd>
+          <dd><span class="count" data-count="77000" data-suffix="+">77,000+</span><span class="stat__meter" aria-hidden="true"></span></dd>
         </div>
-        <div class="stat reveal">
+        <div class="stat reveal" style="--scan-delay: 270ms">
           <dt class="mono">AUTONOMOUS COMPLETION</dt>
-          <dd><span class="count" data-count="94" data-suffix="%">94%</span></dd>
+          <dd><span class="count" data-count="94" data-suffix="%">94%</span><span class="stat__meter" aria-hidden="true"></span></dd>
         </div>
       </dl>
     </section>
@@ -157,7 +166,7 @@
       </p>
 
       <div class="split reveal">
-        <article class="split__panel">
+        <article class="split__panel spot">
           <p class="split__label mono">SIDE A — OPERATIONS</p>
           <h3>The contracting company</h3>
           <p class="split__sub">Boots, trucks, and balance sheet.</p>
@@ -171,7 +180,7 @@
           <p class="split__foot mono">8+ MILITARY INSTALLATIONS · BOZZUTO · BALFOUR BEATTY · CBG · TOLL BROTHERS</p>
         </article>
 
-        <article class="split__panel">
+        <article class="split__panel spot">
           <p class="split__label mono">SIDE B — INTELLIGENCE</p>
           <h3>The IP company</h3>
           <p class="split__sub">An AI lab, run at industrial scale.</p>
@@ -196,7 +205,7 @@
       <h2 class="reveal">Things I like talking&nbsp;about:</h2>
 
       <ul class="rows rows--papers">
-        <li class="row row--paper reveal">
+        <li class="row row--paper spot reveal">
           <a class="paper-link" href="papers/beyond-transformers.html">
             <span class="row__tag mono">PAPER · MAR 2026</span>
             <span class="paper-link__body">
@@ -208,7 +217,7 @@
             </span>
           </a>
         </li>
-        <li class="row row--paper reveal">
+        <li class="row row--paper spot reveal">
           <a class="paper-link" href="papers/continuous-thermodynamic-descent.html">
             <span class="row__tag mono">PAPER · MAR 2026</span>
             <span class="paper-link__body">
@@ -229,7 +238,7 @@
       <h2 class="reveal">Things that tickle my&nbsp;brain</h2>
 
       <ul class="interests">
-        <li class="icard reveal">
+        <li class="icard spot reveal">
           <!-- A working tower crane: hoist a beam, traverse the jib, place it
                on the building going up at right. One 11s pick-and-place cycle;
                every leg eased, all animations share the master clock. -->
@@ -278,7 +287,7 @@
              inefficiency and incapability in our country's businesses really are.</p>
         </li>
 
-        <li class="icard reveal">
+        <li class="icard spot reveal">
           <!-- Where the grid meets the data center, literally: HV pylons,
                sagging conductors, power pulses riding the line, and a data
                center whose load LEDs blink in rhythm with each arrival. -->
@@ -317,7 +326,7 @@
           <p>Compute's next constraint — where the grid meets the data center.</p>
         </li>
 
-        <li class="icard reveal">
+        <li class="icard spot reveal">
           <!-- A die on its board: Manhattan-routed traces with signal pulses
                flowing in on the left, out on the right, the core breathing. -->
           <svg class="icard__art" viewBox="0 0 120 70" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
@@ -362,7 +371,7 @@
           <p>Thermodynamic sampling hardware, and what comes after deterministic silicon.</p>
         </li>
 
-        <li class="icard reveal">
+        <li class="icard spot reveal">
           <!-- An articulated arm welding two curved panels. The torch pivots
                about the shoulder, so its tip sweeps an arc of radius 54.6
                about (30,52) — the seam IS that arc, and the bead's dashoffset
@@ -409,7 +418,7 @@
           <p>Labor is the bottleneck; embodiment is the unlock.</p>
         </li>
 
-        <li class="icard reveal">
+        <li class="icard spot reveal">
           <!-- A real Kepler orbit (e = 0.2, planet at the focus): the keyframes
                sample the eccentric anomaly E at every 15° with keyTimes from
                the mean anomaly M = E − e·sinE, so the satellite genuinely
@@ -455,7 +464,7 @@
           <p>The cleanest systems problem there is: mass, energy, and timing.</p>
         </li>
 
-        <li class="icard reveal">
+        <li class="icard spot reveal">
           <svg class="icard__art" viewBox="0 0 120 70" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
             <!-- Uncertainty envelopes: breathe about y=40, and dim while the
                  wavefunction is collapsed by the periodic measurement. -->
@@ -505,6 +514,7 @@
     <section id="contact" class="section section--contact">
       <p class="section__no mono reveal">04 / CONTACT</p>
 
+      <div class="contact__grid">
       <form id="contactForm" class="cform reveal">
         <div class="cform__grid">
           <label class="cform__field">
@@ -525,10 +535,18 @@
         </div>
       </form>
 
-      <div class="contact__actions reveal">
-        <a class="btn btn--ghost mono" href="https://www.linkedin.com/in/bencyi" rel="noopener">LINKEDIN <span aria-hidden="true">↗</span></a>
-        <a class="btn btn--ghost mono" href="https://github.com/bencyi" rel="noopener">GITHUB <span aria-hidden="true">↗</span></a>
-        <a class="btn btn--ghost mono" href="https://x.com/benc_yi" rel="noopener">X <span aria-hidden="true">↗</span></a>
+      <aside class="contact__rail reveal" aria-label="Elsewhere">
+        <div class="rail-card spot">
+          <p class="rail-card__label mono">LOCAL TIME</p>
+          <p class="rail-card__time mono"><time id="clock2" datetime="">--:--:--</time> CT</p>
+          <p class="rail-card__place mono">AUSTIN, TEXAS</p>
+        </div>
+        <ul class="rail-links">
+          <li><a class="rail-link mono" href="https://www.linkedin.com/in/bencyi" rel="noopener">LINKEDIN <span aria-hidden="true">↗</span></a></li>
+          <li><a class="rail-link mono" href="https://github.com/bencyi" rel="noopener">GITHUB <span aria-hidden="true">↗</span></a></li>
+          <li><a class="rail-link mono" href="https://x.com/benc_yi" rel="noopener">X <span aria-hidden="true">↗</span></a></li>
+        </ul>
+      </aside>
       </div>
     </section>
   </main>
