@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Scale Invariance in Construction Software — Benjamin Yi</title>
+  <meta name="description" content="Software entropy in construction: why RestoreFast models every site, building, and unit as one recursive project type, and what physics has to say about it.">
+  <link rel="canonical" href="https://benyi.ai/writing/scale-invariance-in-construction-software.html">
+  <meta property="og:title" content="Scale Invariance in Construction Software — Benjamin Yi">
+  <meta property="og:description" content="Software entropy in construction: why RestoreFast models every site, building, and unit as one recursive project type, and what physics has to say about it.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://benyi.ai/writing/scale-invariance-in-construction-software.html">
+  <meta property="og:image" content="https://benyi.ai/writing/img/scale-invariance-cover.jpg">
+  <meta property="article:published_time" content="2026-07-29">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#0c0c0b">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/png" sizes="48x48" href="/icon-48.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles.css">
+  <link rel="stylesheet" href="../papers/paper.css">
+  <script>
+    (function () {
+      document.documentElement.classList.add('js');
+      try {
+        var t = localStorage.getItem('theme');
+        if (!t) t = 'dark'; // site defaults to dark; toggle preference persists
+        document.documentElement.dataset.theme = t;
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body>
+  <div class="noise" aria-hidden="true"></div>
+  <header class="site-head">
+    <a class="mark mono" href="../">B/Y</a>
+    <nav class="site-nav mono" aria-label="Primary">
+      <a href="../#research">&larr; All writing</a>
+    </nav>
+    <button id="themeToggle" class="theme-toggle mono" type="button" aria-label="Switch color theme">
+      <span class="theme-toggle__dark">DARK</span><span class="theme-toggle__light">LIGHT</span>
+    </button>
+  </header>
+  <main class="paper">
+    <p class="eyebrow mono"><span class="pulse" aria-hidden="true"></span> ESSAY · JULY 2026 · BENJAMIN YI</p>
+    <h1 class="paper__title">Scale Invariance in Construction Software</h1>
+    <p class="paper__dek">Software entropy in construction: why RestoreFast models every site, building, and unit as one recursive project type, and what physics has to say about it.</p>
+    <p class="paper__byline mono">BENJAMIN YI · <a href="https://x.com/benc_yi/status/2082547169018716612" rel="noopener">ORIGINALLY ON X <span aria-hidden="true">↗</span></a></p>
+    <figure class="paper__cover">
+      <img src="img/scale-invariance-cover.jpg" alt="">
+    </figure>
+<p>Every construction platform eventually has to answer the same question: what, exactly, is a "project"? A single-family water loss is a project. So is a 300-unit apartment complex after a hurricane. So is unit 4B inside it. So is an entire housing community development.</p>
+<p>Most of the industry answers by enumerating. Procore and Autodesk Construction Cloud model different project types and client types as distinct configurations - templates, tool matrices, per-account setups - and let each customer assemble the variant that fits them. It works, and at their scale it's impressive. But structurally it's a catalog of special cases, and every new feature has to be re-answered once per case.</p>
+<p>At RestoreFast we took the other answer, and it comes from physics.</p>
+<h2 class="paper__h2">Scale invariance, briefly</h2>
+<p>A scale-invariant system obeys the same laws at every length scale. That property is what licenses coarse-graining: replace a cluster of fine-grained units with a single effective unit carrying effective parameters, and the dynamics still work. Do this repeatedly and you have the renormalization group - the machinery physicists use to move between scales without the physics breaking underneath them.</p>
+<p>Computer science has the same idea under a different name. A recursive data type with a uniform algebra supports a fold - a catamorphism - that rolls values up the structure. The catch is that the fold is only well-defined if every level supports the same operations. The moment one level is special, the recursion stops being a recursion and becomes a case statement.</p>
+<h2 class="paper__h2">Where it lives in our schema</h2>
+<p>In our system, every project can be the parent of other projects, so every project forms its own project tree - the definition is recursive. A "project" is a site, a building, or a unit. Contracts, line items, directives, days of work, invoices, team members, and completeness scores attach to any of them. There is no separate model for sites and no separate model for units. There is one recursive type.</p>
+<p>Information moves through the tree in both directions. When our system of intelligence takes on a project, it decomposes the engagement downward: the site's scope, budget, schedule, compliance requirements project onto its buildings, and each building's onto its units, so every level inherits a coherent plan from the level above. That decomposition then meets reality. Field teams validate it against what's actually standing in front of them - unit by unit, day by day - and their corrections and actuals walk back up the same tree, re-aggregating at each level until the site reflects what the field found rather than what the model assumed. In renormalization-group terms: the project nodes' states are the effective parameters, the upward walk is the coarse-graining, and the downward decomposition is its inverse - learned from every project we've coarse-grained and corrected before. Each engagement <strong>trains the next </strong>(this is a full conversation for another article).</p>
+<h2 class="paper__h2">Why this matters more than it sounds</h2>
+<p>The enumerate-the-cases approach encodes the diversity of the industry directly into the product. That's a defensible choice for general-purpose construction software, but it has a compounding cost: the configuration matrix grows multiplicatively. Every feature times every project type times every client setup. Whole consulting practices, departments, integration specialists, and API documentation writing teams exist to manage that product surface.</p>
+<p>Our approach inverts it. We looked for the pattern that's invariant across every job we run, and built the minimally viable system that respects that pattern at every scale. Our engineering paradigm is simple: a feature must work at every level of the tree, or it cannot ship. This way, features built once work everywhere - unit, building, site - rather than being rebuilt per project type. Rollups are correct by design, because they are folds over a uniform algebra rather than reports stitched across differently-shaped objects.</p>
+<p>And new scales are largely free <strong>(few other contractors can claim this)</strong>. When a hurricane response spans forty buildings and two thousand units, that's not a new product mode requiring new templates and a training rollout. It's the same object, five levels deep. The site coarse-grains its buildings the way a building coarse-grains its units, and every number a director sees at the top is the fold of the numbers an operator entered at the bottom.</p>
+<h2 class="paper__h2">The takeaway</h2>
+<p>"Minimally viable" gets read as building less. That's not what it means here. The minimally viable system isn't the smallest feature list - it's the smallest set of laws that hold at every scale you'll actually encounter. The laws are made true on the ground by our team and network of operators - the field validation the tree learns from, unit by unit, day by day.</p>
+<p class="paper__signoff mono"><a href="https://x.com/restorefast" rel="noopener">@RESTOREFAST</a></p>
+  </main>
+  <footer class="site-foot">
+    <p class="mono">© 2026 BENJAMIN YI · AUSTIN, TX</p>
+    <p class="mono site-foot__colophon"><a href="../">BENJAMINYI.COM — HOME</a></p>
+  </footer>
+  <script src="../main.js" defer></script>
+</body>
+</html>

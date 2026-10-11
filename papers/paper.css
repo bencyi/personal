@@ -107,6 +107,34 @@
   text-indent: -1.6em;
 }
 
+/* Essays (writing/) — same layout, plus a dek, cover, pull quotes and lists. */
+.paper .paper__dek {
+  color: var(--muted);
+  font-size: 1.15em;
+  line-height: 1.5;
+}
+.paper__cover { margin: 2.4rem 0 0; }
+.paper__cover img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+}
+.paper__quote {
+  margin: 1.8em 0 0;
+  border-left: 3px solid var(--accent);
+  padding: 0.4rem 0 0.4rem 1.4rem;
+  font-size: 1.08em;
+  line-height: 1.6;
+}
+.paper__list { margin: 1.1em 0 0; padding-left: 1.3em; }
+.paper__list li { margin-top: 0.7em; }
+.paper__list li::marker { color: var(--accent); }
+.paper .paper__signoff { margin-top: 2.6rem; font-size: 0.75rem; }
+.paper__signoff a { color: var(--accent); text-decoration: none; }
+.paper__signoff a:hover { text-decoration: underline; }
+
 .site-foot__colophon a { color: inherit; text-decoration: none; }
 .site-foot__colophon a:hover { color: var(--accent); }
 

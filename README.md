@@ -30,6 +30,9 @@ papers/
   *.docx                                    original downloads
   img/                                      paper figures
   paper.css                                 article layout extending styles.css
+writing/
+  *.html                                    essays first published as X Articles, in the paper layout
+  img/                                      essay cover images and figures
 ```
 
 ## Stack
