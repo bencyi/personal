@@ -202,19 +202,20 @@
       "  col = mix(col, accCol, contour * mix(0.32, 0.38, uDark));",
       "  col = mix(col, mix(accCol, cyanCol, 0.45), majorContour * mix(0.65, 0.80, uDark));",
 
-      "  // Luminous shockwave crest highlight",
-      "  col += mix(accCol, cyanCol, 0.6) * clamp(vWave * 3.8, 0.0, 1.0) * mix(0.45, 0.85, uDark);",
+      "  // Luminous shockwave crest highlight + intensified basin glow during the scroll dive",
+      "  float diveGlow = smoothstep(0.15, 0.85, uScroll) * basinDepth;",
+      "  col += mix(accCol, cyanCol, 0.55) * (clamp(vWave * 3.8, 0.0, 1.0) * mix(0.45, 0.85, uDark) + diveGlow * mix(0.28, 0.52, uDark));",
 
       "  // Soft elliptical vignette fade so the 3D manifold emerges seamlessly out of the ground",
       "  vec2 edge = vXZ / vec2(3.55, 2.75);",
       "  float rEdge = length(edge * vec2(1.0, 1.08));",
       "  float alpha = smoothstep(0.98, 0.46, rEdge);",
-      "  // Fade slightly as user scrolls past hero",
-      "  alpha *= (1.0 - smoothstep(0.65, 1.15, uScroll));",
+      "  // Keep the basin vivid throughout the plunge, then dissolve cleanly at the portal exit",
+      "  alpha *= (1.0 - smoothstep(0.84, 1.0, uScroll));",
 
       "  // Boost visibility along contour/basin geometry so it floats cleanly over the paper",
       "  float surfaceOp = mix(0.76, 0.86, uDark);",
-      "  float finalA = alpha * clamp(surfaceOp + majorContour * 0.22 + basinDepth * 0.18 + vWave * 0.35, 0.0, 0.98);",
+      "  float finalA = alpha * clamp(surfaceOp + majorContour * 0.24 + basinDepth * 0.22 + vWave * 0.35 + diveGlow * 0.2, 0.0, 0.99);",
       "  gl_FragColor = vec4(col, finalA);",
       "}"
     ].join("\n");
@@ -261,7 +262,7 @@
       "  vec3 hotCol  = mix(cHotLight, cHotDark, uDark);",
       "  vec3 col = mix(lowCol, highCol, clamp(vEnergy * 1.1, 0.0, 1.0));",
       "  col = mix(col, hotCol, clamp((vEnergy - 0.55) * 2.2, 0.0, 1.0));",
-      "  float a = (core * 0.75 + glow * 0.45) * (1.0 - smoothstep(0.65, 1.15, uScroll));",
+      "  float a = (core * 0.78 + glow * 0.48) * (1.0 - smoothstep(0.82, 1.0, uScroll));",
       "  gl_FragColor = vec4(col, a * mix(0.78, 0.92, uDark));",
       "}"
     ].join("\n");
@@ -526,13 +527,25 @@
       ptr.pitchOff += (ptr.tpitch - ptr.pitchOff) * 0.06;
       scrollState.vel *= 0.92;
 
-      // Build active wells: 3 primary drifting attractors + cursor probe + up to 4 user-deposited wells
+      // Smooth scroll dive progress (0 = hero resting, 1 = plunged through the attractor basin)
+      var sp = Math.min(Math.max(scrollState.p, 0), 1.0);
+      var lock = Math.min(1, sp / 0.52);
+      lock = lock * lock * (3 - 2 * lock); // smoothstep lock-on
+      var plunge = sp * sp * (3 - 2 * sp);
+      var deepDive = Math.pow(sp, 1.75);
+
+      // Build active wells: primary basin smoothly centers & deepens into a monumental portal on scroll!
       wellUniforms.fill(0);
-      // Primary deep attractor basins biased rightward for balanced composition beside the headline
+      var p1x = (1.08 + Math.sin(t * 0.29) * 0.34) * (1 - lock);
+      var p1z = (-0.22 + Math.cos(t * 0.24) * 0.28) * (1 - lock);
+      var p1Depth = -1.25 - deepDive * 2.35;
+      var p1InvS = 1.35 - lock * 0.52;
+
+      var spread = 1 + lock * 0.55;
       var bWells = [
-        [1.08 + Math.sin(t * 0.29) * 0.34, -0.22 + Math.cos(t * 0.24) * 0.28, -1.25, 1.35],
-        [2.05 + Math.cos(t * 0.22 + 1.4) * 0.32, 0.78 + Math.sin(t * 0.27) * 0.26, -1.05, 1.45],
-        [-0.35 + Math.sin(t * 0.2 + 2.6) * 0.35, 0.72 + Math.cos(t * 0.25 + 1.0) * 0.28, -0.82, 1.2]
+        [p1x, p1z, p1Depth, p1InvS],
+        [(2.05 + Math.cos(t * 0.22 + 1.4) * 0.32) * spread, (0.78 + Math.sin(t * 0.27) * 0.26) * spread, -1.05 * (1 - lock * 0.45), 1.45],
+        [(-0.35 + Math.sin(t * 0.2 + 2.6) * 0.35) * spread, (0.72 + Math.cos(t * 0.25 + 1.0) * 0.28) * spread, -0.82 * (1 - lock * 0.45), 1.2]
       ];
       var activeCount = 3;
       for (var bi = 0; bi < 3; bi++) {
@@ -542,11 +555,11 @@
         wellUniforms[bi * 4 + 3] = bWells[bi][3];
       }
 
-      // Live pointer gravity probe
-      if (ptr.active) {
+      // Live pointer gravity probe (fades smoothly during deep dive so cursor doesn't distort the portal)
+      if (ptr.active && sp < 0.55) {
         wellUniforms[12] = ptr.nx * 2.85 + 0.35;
         wellUniforms[13] = ptr.ny * 2.15;
-        wellUniforms[14] = -0.68;
+        wellUniforms[14] = -0.68 * (1 - sp / 0.55);
         wellUniforms[15] = 2.1;
       }
 
@@ -590,24 +603,34 @@
         waveUniforms[o + 3] = sw.amp * Math.exp(-wage * 1.15);
       }
 
-      // Camera: dramatic choreographed opening sweep + scroll flyover + mouse parallax
+      // Camera: dramatic choreographed opening sweep + VISCERAL DIVE STRAIGHT INTO THE BASIN!
       var introCam = 1 - intro;
-      var sp = Math.min(Math.max(scrollState.p, 0), 1.2);
-      var yaw = -0.34 + ptr.nx * 0.22 + ptr.yawOff + Math.sin(t * 0.14) * 0.08 + sp * 0.52 - introCam * 0.55;
-      var pitch = 0.58 - ptr.ny * 0.14 + ptr.pitchOff + sp * 0.44 + introCam * 0.48;
-      pitch = Math.max(0.28, Math.min(1.22, pitch));
-      var dist = 4.65 - sp * 0.65 + introCam * 1.65;
+      var mouseScale = Math.max(0, 1 - sp * 1.4);
+      var yaw = -0.34 + (ptr.nx * 0.22 + ptr.yawOff) * mouseScale + Math.sin(t * 0.14) * 0.08 + plunge * 1.28 - introCam * 0.55;
+      var pitch = 0.56 - (ptr.ny * 0.14 - ptr.pitchOff) * mouseScale + plunge * 0.88 + introCam * 0.48;
+      pitch = Math.max(0.28, Math.min(1.46, pitch));
+      var dist = 4.65 * (1 - deepDive * 0.84) + introCam * 1.65;
 
-      var target = [0.22 - sp * 0.25, -0.36, 0.12];
+      // Target drops straight down the axis of the primary basin!
+      var target = [
+        0.22 * (1 - lock) + p1x * lock,
+        -0.36 - deepDive * 2.95,
+        0.12 * (1 - lock) + p1z * lock
+      ];
       var eye = [
         target[0] + Math.sin(yaw) * Math.cos(pitch) * dist,
         target[1] + Math.sin(pitch) * dist,
         target[2] + Math.cos(yaw) * Math.cos(pitch) * dist
       ];
 
+      // Subtle barrel-bank roll during the plunge for visceral cinema
+      var roll = Math.sin(sp * Math.PI) * 0.22;
+      var upVec = [Math.sin(roll), Math.cos(roll), 0];
+
       var aspect = W / Math.max(H, 1);
-      var proj = perspective(0.76, aspect, 0.1, 30.0);
-      var view = lookAt(eye, target, [0, 1, 0]);
+      var fov = 0.76 + deepDive * 0.56; // warp-lens widening as we plunge in!
+      var proj = perspective(fov, aspect, 0.08, 30.0);
+      var view = lookAt(eye, target, upVec);
       var mvp = mat4Mul(proj, view);
 
       // Update 1,500 3D Langevin particles
@@ -766,10 +789,11 @@
         if (document.hidden) stop(); else start();
       });
       if ("IntersectionObserver" in window) {
+        var observeEl = document.getElementById("heroStage") || hero;
         new IntersectionObserver(function (entries) {
           visible = entries[0].isIntersecting;
           if (visible) start(); else stop();
-        }, { threshold: 0 }).observe(hero);
+        }, { threshold: 0 }).observe(observeEl);
       }
     }
 

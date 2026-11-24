@@ -94,7 +94,7 @@
 
   var siteHead = document.getElementById("siteHead");
   var scrollBar = document.getElementById("scrollBar");
-  var heroEl = document.querySelector(".hero");
+  var heroStage = document.getElementById("heroStage");
   var pillNav = document.querySelector(".pill-nav");
   var navThumb = document.getElementById("navThumb");
   var navLinks = pillNav ? [].slice.call(pillNav.querySelectorAll("a")) : [];
@@ -149,15 +149,20 @@
       siteHead.classList.toggle("is-scrolled", y > 24);
     }
 
-    // Drive 3D Hero Camera Flyover + Parallax
-    if (heroEl) {
-      var hh = heroEl.offsetHeight || window.innerHeight;
-      var hp = Math.max(0, Math.min(1.2, y / Math.max(hh, 1)));
+    // Drive 3D Sticky Basin-Dive Portal across #heroStage runway
+    if (heroStage) {
+      var sr = heroStage.getBoundingClientRect();
+      var runway = Math.max(heroStage.offsetHeight - window.innerHeight, 1);
+      var dive = Math.max(0, Math.min(1, -sr.top / runway));
+      var diveCopy = Math.max(0, Math.min(1, dive / 0.34));
+      var diveExit = Math.max(0, Math.min(1, (dive - 0.68) / 0.32));
       if (!reduced) {
-        heroEl.style.setProperty("--hero-scroll", Math.min(hp, 1).toFixed(4));
+        heroStage.style.setProperty("--dive", dive.toFixed(4));
+        heroStage.style.setProperty("--dive-copy", diveCopy.toFixed(4));
+        heroStage.style.setProperty("--dive-exit", diveExit.toFixed(4));
       }
       if (window.BenPhysics && window.BenPhysics.setHeroScroll) {
-        window.BenPhysics.setHeroScroll(hp, vel);
+        window.BenPhysics.setHeroScroll(dive, vel);
       }
     }
 

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Benjamin Yi — Writing &amp; Research</title>
+    <link>https://benyi.ai/</link>
+    <atom:link href="https://benyi.ai/rss.xml" rel="self" type="application/rss+xml"/>
+    <description>Essays and research papers by Benjamin Yi (Ben Yi) on thermodynamic computing, physics-optimal AI architectures, and complex systems.</description>
+    <language>en-us</language>
+    <lastBuildDate>Tue, 24 Nov 2026 19:00:00 GMT</lastBuildDate>
+
+    <item>
+      <title>The Point Was Always to Be Outgrown</title>
+      <link>https://benyi.ai/writing/the-point-was-always-to-be-outgrown.html</link>
+      <guid>https://benyi.ai/writing/the-point-was-always-to-be-outgrown.html</guid>
+      <pubDate>Fri, 09 Oct 2026 12:00:00 GMT</pubDate>
+      <description>On AI, fear, and the oldest hope a parent has. Every generation was allowed to become more capable than the one before; AI is the first child the whole species has raised together.</description>
+    </item>
+
+    <item>
+      <title>You Cannot Hire Your Way Out of a Systems Problem</title>
+      <link>https://benyi.ai/writing/you-cannot-hire-your-way-out-of-a-systems-problem.html</link>
+      <guid>https://benyi.ai/writing/you-cannot-hire-your-way-out-of-a-systems-problem.html</guid>
+      <pubDate>Tue, 18 Aug 2026 12:00:00 GMT</pubDate>
+      <description>Contractors are run correctly, on the wrong architecture. The trades were never the bottleneck; the manual synchronization layer above them was.</description>
+    </item>
+
+    <item>
+      <title>Scale Invariance in Construction Software</title>
+      <link>https://benyi.ai/writing/scale-invariance-in-construction-software.html</link>
+      <guid>https://benyi.ai/writing/scale-invariance-in-construction-software.html</guid>
+      <pubDate>Wed, 29 Jul 2026 12:00:00 GMT</pubDate>
+      <description>One recursive project type for every site, building, and unit. Borrowing the renormalization group so features, rollups, and new scales hold by construction.</description>
+    </item>
+
+    <item>
+      <title>Beyond Transformers: Toward Physics-Optimal Architectures for Large Language Models</title>
+      <link>https://benyi.ai/papers/beyond-transformers.html</link>
+      <guid>https://benyi.ai/papers/beyond-transformers.html</guid>
+      <pubDate>Sun, 15 Mar 2026 12:00:00 GMT</pubDate>
+      <description>The transformer is a local optimum constrained by deterministic silicon. A first-principles framework built on attractor dynamics, phase-synchronization attention, and complete thought-states.</description>
+    </item>
+
+    <item>
+      <title>Continuous Thermodynamic Descent: A Non-Equilibrium Training Algorithm for Thermodynamic Stochastic Hardware</title>
+      <link>https://benyi.ai/papers/continuous-thermodynamic-descent.html</link>
+      <guid>https://benyi.ai/papers/continuous-thermodynamic-descent.html</guid>
+      <pubDate>Sun, 15 Mar 2026 12:00:00 GMT</pubDate>
+      <description>Training without backpropagation: deposition, erosion, and weathering continuously sculpt an energy landscape in perpetual non-equilibrium.</description>
+    </item>
+  </channel>
+</rss>

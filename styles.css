@@ -360,36 +360,63 @@ body:not(.page-home) .site-head {
   background: var(--accent);
 }
 
-/* ---------- hero: 3D WebGL thermodynamic manifold ---------- */
+/* ---------- hero: sticky 3D basin-dive stage ---------- */
+
+.hero-stage {
+  position: relative;
+  height: 205svh;
+  --dive: 0;
+  --dive-copy: 0;
+  --dive-exit: 0;
+}
 
 .hero {
-  position: relative;
-  min-height: min(94svh, 900px);
+  position: sticky;
+  top: 0;
+  height: 100svh;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 7.5rem 0 clamp(4.5rem, 8.5vh, 6.2rem);
+  padding: 5.5rem 0 4rem;
   overflow: hidden;
-  border-bottom: 1px solid var(--line);
   cursor: grab;
-  --hero-scroll: 0;
 }
 .hero:active { cursor: grabbing; }
 
-/* Localized atmospheric veil strictly behind the left editorial column so
-   text reads effortlessly while the 3D WebGL manifold shines vividly */
+/* Localized atmospheric veil strictly behind the left editorial column;
+   lifts away automatically as the copy departs so the full 3D canyon shines */
 .hero::before {
   content: "";
   position: absolute;
   inset: 0;
   z-index: 1;
   pointer-events: none;
+  opacity: calc(1 - var(--dive-copy, 0));
   background: radial-gradient(
     ellipse 54% 72% at 24% 48%,
     color-mix(in srgb, var(--bg) 82%, transparent) 0%,
     color-mix(in srgb, var(--bg) 42%, transparent) 58%,
     transparent 100%
   );
+}
+
+/* Luminous aperture blooming at the bottom of the attractor funnel to
+   seamlessly expose Writing & Research */
+.hero__portal {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  opacity: var(--dive-exit, 0);
+  background:
+    radial-gradient(
+      circle at 50% 50%,
+      var(--bg) 0%,
+      color-mix(in srgb, var(--bg) 96%, transparent) 48%,
+      color-mix(in srgb, var(--accent) 12%, var(--bg)) 100%
+    );
+  transform: scale(calc(0.4 + var(--dive-exit, 0) * 0.9));
+  will-change: transform, opacity;
 }
 
 .hero__field {
@@ -407,15 +434,29 @@ body:not(.page-home) .site-head {
   width: var(--w);
   margin-inline: auto;
   pointer-events: none; /* allow dragging/clicking open space to interact with 3D mesh */
-  transform: translate3d(0, calc(var(--hero-scroll, 0) * -46px), 0);
-  opacity: calc(1 - var(--hero-scroll, 0) * 0.55);
-  will-change: transform, opacity;
+  transform: translate3d(0, calc(var(--dive-copy, 0) * -68px), 0) scale(calc(1 + var(--dive-copy, 0) * 0.055));
+  opacity: calc(1 - var(--dive-copy, 0));
+  filter: blur(calc(var(--dive-copy, 0) * 2.5px));
+  will-change: transform, opacity, filter;
 }
 .hero__inner a,
 .hero__inner button,
 .hero__inner p,
 .hero__inner h1 {
   pointer-events: auto;
+}
+
+.hero__scroll-cue {
+  position: absolute;
+  left: var(--gutter);
+  bottom: 1.65rem;
+  z-index: 3;
+  font-size: 0.68rem;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  pointer-events: none;
+  opacity: calc(1 - min(1, var(--dive, 0) * 6));
+  transition: opacity 0.2s ease;
 }
 
 /* Choreographed opening entrance synced to the 3D manifold bloom */
@@ -576,6 +617,7 @@ body:not(.page-home) .site-head {
   font-size: 0.68rem;
   color: var(--muted);
   box-shadow: var(--shadow-sm);
+  opacity: calc(1 - min(1, var(--dive, 0) * 4.5));
 }
 .hero__hud-stat strong {
   color: var(--ink);
@@ -614,7 +656,14 @@ body:not(.page-home) .site-head {
   padding-block: clamp(4.5rem, 9.5vh, 7.2rem);
   border-top: 1px solid var(--line);
 }
-.band--writing { border-top: none; }
+.band--writing {
+  position: relative;
+  z-index: 6;
+  margin-top: -42svh;
+  padding-top: clamp(3rem, 6vh, 4.5rem);
+  border-top: none;
+  scroll-margin-top: 5.5rem;
+}
 
 .band__head {
   display: flex;
@@ -1661,10 +1710,12 @@ html.bh-lock .hero__hint { opacity: 0; }
     white-space: nowrap;
   }
   .icon-pill { display: none; }
+  .hero-stage { height: 160svh; }
+  .hero__scroll-cue { display: none; }
   .hero__hud {
     left: var(--gutter);
     right: auto;
-    bottom: 1rem;
+    bottom: 4.4rem;
     font-size: 0.62rem;
   }
   .hero__hint,
@@ -1717,11 +1768,16 @@ html.bh-lock .hero__hint { opacity: 0; }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
+  .hero-stage { height: auto; }
+  .hero { position: relative; height: auto; min-height: 88svh; }
+  .hero__portal, .hero__scroll-cue { display: none; }
+  .band--writing { margin-top: 0; }
   .js .reveal { opacity: 1; transform: none; transition: none; }
   .js .hero-anim { opacity: 1; transform: none; animation: none; }
   .js .index-item.reveal::before { transform: scaleX(1); transition: none; }
   .kinetic-title .kw > span { transform: none; transition: none; }
-  .hero__inner { transform: none; opacity: 1; }
+  .hero__inner { transform: none; opacity: 1; filter: none; }
+  .hero__hud { opacity: 1; }
   .work-plate { transform: none !important; }
   .pill-nav__thumb,
   .segmented__thumb,

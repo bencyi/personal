@@ -3,17 +3,22 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Benjamin Yi</title>
-  <meta name="description" content="Benjamin Yi — Optimistic realist in Austin, Texas. Writing on the physics of intelligence and complex systems; co-founder &amp; CEO at RestoreFast.">
+  <title>Benjamin Yi (Ben Yi)</title>
+  <meta name="description" content="Benjamin Yi (Ben Yi) — founder, writer, and researcher in Austin, Texas. Writing on thermodynamic computing, physics-optimal AI architectures, and complex systems; co-founder &amp; CEO at RestoreFast.">
   <link rel="canonical" href="https://benyi.ai/">
-  <meta property="og:title" content="Benjamin Yi">
+  <link rel="alternate" type="application/rss+xml" title="Benjamin Yi — Writing &amp; Research" href="https://benyi.ai/rss.xml">
+  <meta property="og:title" content="Benjamin Yi (Ben Yi)">
   <meta property="og:description" content="Optimistic realist in Austin, Texas. Writing on thermodynamic computing, systems architecture, and building where software meets the physical world.">
-  <meta property="og:type" content="website">
+  <meta property="og:type" content="profile">
+  <meta property="profile:first_name" content="Benjamin">
+  <meta property="profile:last_name" content="Yi">
   <meta property="og:url" content="https://benyi.ai/">
   <meta property="og:image" content="https://benyi.ai/og.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@benc_yi">
+  <meta name="twitter:creator" content="@benc_yi">
   <meta name="theme-color" content="#f5f3ee">
 
   <link rel="icon" href="/favicon.ico" sizes="any">
@@ -42,17 +47,56 @@
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "Person",
-    "name": "Benjamin Yi",
-    "url": "https://benyi.ai",
-    "jobTitle": "Co-Founder & CEO",
-    "worksFor": { "@type": "Organization", "name": "RestoreFast", "url": "https://www.restorefast.com" },
-    "alumniOf": { "@type": "CollegeOrUniversity", "name": "University of Maryland - College Park" },
-    "address": { "@type": "PostalAddress", "addressLocality": "Austin", "addressRegion": "TX", "addressCountry": "US" },
-    "sameAs": [
-      "https://www.linkedin.com/in/bencyi",
-      "https://github.com/bencyi",
-      "https://x.com/benc_yi"
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://benyi.ai/#website",
+        "url": "https://benyi.ai/",
+        "name": "Benjamin Yi",
+        "alternateName": "Ben Yi",
+        "description": "Personal website, essays, and research papers of Benjamin Yi (Ben Yi).",
+        "publisher": { "@id": "https://benyi.ai/#person" }
+      },
+      {
+        "@type": "ProfilePage",
+        "@id": "https://benyi.ai/#profile",
+        "url": "https://benyi.ai/",
+        "name": "Benjamin Yi (Ben Yi)",
+        "isPartOf": { "@id": "https://benyi.ai/#website" },
+        "mainEntity": { "@id": "https://benyi.ai/#person" },
+        "dateModified": "2026-11-24"
+      },
+      {
+        "@type": "Person",
+        "@id": "https://benyi.ai/#person",
+        "name": "Benjamin Yi",
+        "alternateName": ["Ben Yi", "Ben C. Yi"],
+        "givenName": "Benjamin",
+        "familyName": "Yi",
+        "url": "https://benyi.ai/",
+        "image": "https://benyi.ai/og.png",
+        "description": "Optimistic realist in Austin, Texas — building systems where software meets the physical world, and writing about the physics of intelligence. Co-founder & CEO at RestoreFast.",
+        "jobTitle": "Co-Founder & CEO",
+        "worksFor": { "@type": "Organization", "name": "RestoreFast", "url": "https://www.restorefast.com" },
+        "alumniOf": { "@type": "CollegeOrUniversity", "name": "University of Maryland, College Park" },
+        "homeLocation": { "@type": "Place", "name": "Austin, Texas" },
+        "address": { "@type": "PostalAddress", "addressLocality": "Austin", "addressRegion": "TX", "addressCountry": "US" },
+        "knowsAbout": [
+          "Thermodynamic Computing",
+          "Artificial Intelligence",
+          "Systems Architecture",
+          "Energy-Based Models",
+          "Construction Technology",
+          "Robotics",
+          "Quantum Mechanics"
+        ],
+        "sameAs": [
+          "https://www.linkedin.com/in/bencyi",
+          "https://github.com/bencyi",
+          "https://x.com/benc_yi",
+          "https://www.restorefast.com"
+        ]
+      }
     ]
   }
   </script>
@@ -97,10 +141,14 @@
 
   <main id="top">
 
-    <!-- ============ HERO: 3D WEBGL THERMODYNAMIC POTENTIAL MANIFOLD ============ -->
+    <!-- ============ HERO: STICKY 3D BASIN-DIVE STAGE ============ -->
+    <div class="hero-stage" id="heroStage">
     <section class="hero" aria-label="Introduction">
       <!-- Real-time 3D WebGL sculpted energy surface + 1,500-particle Langevin swarm -->
       <canvas id="energyField" class="hero__field" aria-hidden="true"></canvas>
+
+      <!-- Luminous exit aperture when diving through the bottom of the attractor basin -->
+      <div class="hero__portal" aria-hidden="true"></div>
 
       <div class="hero__inner">
         <div class="hero__meta hero-anim" style="--d: 60ms">
@@ -135,6 +183,8 @@
         </div>
       </div>
 
+      <span class="hero__scroll-cue mono" id="scrollCue" aria-hidden="true">Scroll to dive ↓</span>
+
       <!-- Quiet interactive 3D manifold control bar -->
       <div class="hero__hud mono" id="heroHud">
         <span class="hero__hud-stat">attractors: <strong id="wellCount">3</strong></span>
@@ -145,6 +195,7 @@
         </button>
       </div>
     </section>
+    </div>
 
     <!-- ============ 01 WRITING & RESEARCH ============ -->
     <section id="writing" class="band band--writing">
@@ -428,9 +479,9 @@
           </div>
 
           <ul class="elsewhere">
-            <li><a href="https://x.com/benc_yi" rel="noopener"><span>X / Twitter</span><span class="mono">@benc_yi ↗</span></a></li>
-            <li><a href="https://github.com/bencyi" rel="noopener"><span>GitHub</span><span class="mono">bencyi ↗</span></a></li>
-            <li><a href="https://www.linkedin.com/in/bencyi" rel="noopener"><span>LinkedIn</span><span class="mono">in/bencyi ↗</span></a></li>
+            <li><a href="https://x.com/benc_yi" rel="me noopener"><span>X / Twitter</span><span class="mono">@benc_yi ↗</span></a></li>
+            <li><a href="https://github.com/bencyi" rel="me noopener"><span>GitHub</span><span class="mono">bencyi ↗</span></a></li>
+            <li><a href="https://www.linkedin.com/in/bencyi" rel="me noopener"><span>LinkedIn</span><span class="mono">in/bencyi ↗</span></a></li>
           </ul>
         </div>
 
