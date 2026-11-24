@@ -1,5 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-label="BY">
-  <rect width="192" height="192" rx="36" fill="#ff4d00"/>
-  <path fill="#0c0c0b" d="M43 45h45c18 0 30 10 30 26 0 10-5 18-15 22 12 4 19 13 19 26 0 18-13 28-34 28H43V45Zm23 22v17h19c7 0 11-3 11-9 0-5-4-8-11-8H66Zm0 38v20h22c7 0 11-4 11-10 0-7-4-10-12-10H66Z"/>
-  <path fill="#0c0c0b" d="M112 45h26l17 36 17-36h25l-31 58v44h-23v-44L112 45Z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-label="Benjamin Yi">
+  <rect width="192" height="192" rx="40" fill="#14161b"/>
+  <circle cx="152" cy="40" r="10" fill="#5b82ff"/>
+  <path fill="#f5f3ee" d="M44 50h40c17 0 28 9 28 24 0 9-5 17-14 20 11 4 17 12 17 24 0 17-12 26-31 26H44V50Zm19 18v18h18c7 0 11-3 11-9s-4-9-11-9H63Zm0 35v22h20c8 0 12-4 12-11s-4-11-12-11H63Z"/>
+  <path fill="#f5f3ee" d="M111 50h22l14 34 15-34h21l-27 54v40h-19v-40L111 50Z"/>
 </svg>

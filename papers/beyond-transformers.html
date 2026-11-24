@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -16,7 +16,7 @@
   <link rel="manifest" href="/site.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../styles.css">
   <link rel="stylesheet" href="paper.css">
   <script>
@@ -24,7 +24,7 @@
       document.documentElement.classList.add('js');
       try {
         var t = localStorage.getItem('theme');
-        if (!t) t = 'dark'; // site defaults to dark; toggle preference persists
+        if (t !== 'dark' && t !== 'light') t = 'light';
         document.documentElement.dataset.theme = t;
       } catch (e) {}
     })();
@@ -33,9 +33,9 @@
 <body>
   <div class="noise" aria-hidden="true"></div>
   <header class="site-head">
-    <a class="mark mono" href="../">B/Y</a>
+    <a class="mark" href="../">Benjamin Yi</a>
     <nav class="site-nav mono" aria-label="Primary">
-      <a href="../#research">&larr; All research</a>
+      <a href="../#writing">&larr; All writing</a>
     </nav>
     <button id="themeToggle" class="theme-toggle mono" type="button" aria-label="Switch color theme">
       <span class="theme-toggle__dark">DARK</span><span class="theme-toggle__light">LIGHT</span>

@@ -1,62 +1,94 @@
-/* Paper pages — extends styles.css with an article layout. */
+/* Paper & Essay pages — extends styles.css with a refined reading layout. */
 
 .paper {
-  width: min(46rem, calc(100vw - 2 * var(--gutter)));
+  width: min(44rem, calc(100vw - 2 * var(--gutter)));
   margin-inline: auto;
-  padding: 8.5rem 0 6rem;
+  padding: 8.5rem 0 6.5rem;
 }
 
 .paper__title {
-  font-size: clamp(1.9rem, 5vw, 3.1rem);
-  line-height: 1.1;
-  margin-top: 0.4rem;
+  font-family: var(--font-serif);
+  font-size: clamp(2.1rem, 5vw, 3.4rem);
+  font-weight: 400;
+  line-height: 1.08;
+  letter-spacing: -0.028em;
+  margin-top: 0.45rem;
+  color: var(--ink);
+}
+
+.paper .paper__dek {
+  margin-top: 1.15rem;
+  font-family: var(--font-serif);
+  font-size: clamp(1.18rem, 2vw, 1.38rem);
+  font-weight: 300;
+  line-height: 1.48;
+  color: var(--muted);
 }
 
 .paper__byline {
   color: var(--muted);
-  margin-top: 1.2rem;
+  margin-top: 1.35rem;
   padding-bottom: 2.2rem;
   border-bottom: 1px solid var(--line);
 }
 .paper__byline a { color: var(--accent); text-decoration: none; }
 .paper__byline a:hover { text-decoration: underline; }
 
-.paper p { margin-top: 1.1em; color: var(--ink); }
-.paper p strong { color: var(--ink); }
+.paper p {
+  margin-top: 1.25em;
+  color: var(--ink-soft);
+  font-size: 1.03rem;
+  line-height: 1.75;
+}
+.paper p strong { color: var(--ink); font-weight: 600; }
 
 .paper__h2 {
-  font-size: 1.55rem;
-  margin-top: 3.2rem;
+  font-family: var(--font-serif);
+  font-size: clamp(1.5rem, 2.8vw, 1.9rem);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--ink);
+  margin-top: 3.4rem;
   padding-top: 2.2rem;
   border-top: 1px solid var(--line);
 }
 .paper__h3 {
-  font-size: 1.15rem;
-  margin-top: 2.2rem;
+  font-family: var(--font-serif);
+  font-size: 1.28rem;
+  font-weight: 500;
+  margin-top: 2.3rem;
   color: var(--ink);
 }
 
 .paper__abstract {
-  border-left: 3px solid var(--accent);
-  padding: 0.4rem 0 0.4rem 1.4rem;
+  border-left: 2px solid var(--accent);
+  padding: 0.45rem 0 0.45rem 1.4rem;
   color: var(--muted);
-  font-size: 1.02em;
+  font-family: var(--font-serif);
+  font-size: 1.12rem;
+  line-height: 1.65;
 }
 
-.paper__keywords { color: var(--muted); font-size: 0.72rem; }
+.paper__keywords {
+  color: var(--muted);
+  font-size: 0.74rem;
+  margin-top: 1.3rem;
+}
 
 .paper__eq {
   display: flex;
   align-items: baseline;
   justify-content: center;
   gap: 1.5rem;
-  background: var(--surface);
+  background: var(--surface-elevated);
   border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 1rem 1.2rem;
-  margin-top: 1.4em;
+  border-radius: 10px;
+  padding: 1.1rem 1.3rem;
+  margin-top: 1.5em;
   overflow-x: auto;
   font-size: 0.85rem;
+  color: var(--ink);
 }
 .paper__eqno { color: var(--muted); flex-shrink: 0; }
 
@@ -64,74 +96,84 @@
 .paper__fig img {
   width: 100%;
   height: auto;
-  border-radius: 6px;
+  border-radius: 10px;
   border: 1px solid var(--line);
-  background: #fff;
+  background: #f8f7f3;
 }
 .paper__fig figcaption,
 .paper__tablewrap figcaption,
 .paper__loosecap {
   color: var(--muted);
-  font-size: 0.7rem;
-  line-height: 1.7;
-  margin-top: 0.9rem;
+  font-size: 0.72rem;
+  line-height: 1.65;
+  margin-top: 0.85rem;
 }
 
 .paper__tablewrap { margin: 2.4rem 0 0; overflow-x: auto; }
 .paper__table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.85rem;
+  font-size: 0.88rem;
 }
-.paper__table th, .paper__table td {
+.paper__table th,
+.paper__table td {
   text-align: left;
-  padding: 0.65rem 0.9rem;
+  padding: 0.7rem 0.95rem;
   border: 1px solid var(--line);
   vertical-align: top;
 }
 .paper__table thead th {
   font-family: var(--font-mono);
   font-size: 0.68rem;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--muted);
   background: var(--surface);
 }
-.paper__table tbody th { font-weight: 600; white-space: nowrap; }
+.paper__table tbody th { font-weight: 600; white-space: nowrap; color: var(--ink); }
 
-.paper__refs { margin-top: 1rem; }
+.paper__refs { margin-top: 1.1rem; }
 .paper__ref {
-  font-size: 0.85em;
+  font-size: 0.88rem;
   color: var(--muted);
   padding-left: 1.6em;
   text-indent: -1.6em;
 }
 
-/* Essays (writing/) — same layout, plus a dek, cover, pull quotes and lists. */
-.paper .paper__dek {
-  color: var(--muted);
-  font-size: 1.15em;
-  line-height: 1.5;
-}
 .paper__cover { margin: 2.4rem 0 0; }
 .paper__cover img {
   display: block;
   width: 100%;
   height: auto;
-  border-radius: 6px;
+  border-radius: 12px;
   border: 1px solid var(--line);
 }
+
 .paper__quote {
-  margin: 1.8em 0 0;
-  border-left: 3px solid var(--accent);
-  padding: 0.4rem 0 0.4rem 1.4rem;
-  font-size: 1.08em;
+  margin: 2em 0 0;
+  border-left: 2px solid var(--accent);
+  padding: 0.4rem 0 0.4rem 1.45rem;
+  font-family: var(--font-serif);
+  font-size: 1.18rem;
   line-height: 1.6;
+  color: var(--ink);
 }
-.paper__list { margin: 1.1em 0 0; padding-left: 1.3em; }
-.paper__list li { margin-top: 0.7em; }
+
+.paper__list {
+  margin: 1.2em 0 0;
+  padding-left: 1.35em;
+  color: var(--ink-soft);
+}
+.paper__list li {
+  margin-top: 0.75em;
+  line-height: 1.7;
+}
 .paper__list li::marker { color: var(--accent); }
-.paper .paper__signoff { margin-top: 2.6rem; font-size: 0.75rem; }
+
+.paper .paper__signoff {
+  margin-top: 2.8rem;
+  font-size: 0.76rem;
+}
 .paper__signoff a { color: var(--accent); text-decoration: none; }
 .paper__signoff a:hover { text-decoration: underline; }
 

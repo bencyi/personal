@@ -1,62 +1,12 @@
-/* Benjamin Yi — personal site
-   Vanilla JS, no dependencies. Every effect is gated on prefers-reduced-motion. */
+/* Benjamin Yi — personal monograph
+   Vanilla JS, zero dependencies. Coordinates UI, scroll choreography,
+   command palette, and window.BenPhysics (3D WebGL manifold + 6 live physics labs). */
 
 (function () {
   "use strict";
 
   var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  // SMIL animations (the orbiting satellite) can't be gated from CSS.
-  if (reduced) {
-    document.querySelectorAll("svg").forEach(function (s) {
-      if (s.pauseAnimations) s.pauseAnimations();
-    });
-  }
-
-  /* ---------- live clock (Austin = America/Chicago) ---------- */
-
-  var clock = document.getElementById("clock");
-  if (clock) {
-    var fmt = new Intl.DateTimeFormat("en-US", {
-      timeZone: "America/Chicago",
-      hour: "2-digit", minute: "2-digit", second: "2-digit",
-      hour12: false
-    });
-    var clock2 = document.getElementById("clock2");
-    var tick = function () {
-      var now = new Date();
-      var text = fmt.format(now);
-      clock.textContent = text;
-      clock.dateTime = now.toISOString();
-      if (clock2) {
-        clock2.textContent = text;
-        clock2.dateTime = now.toISOString();
-      }
-    };
-    tick();
-    setInterval(tick, 1000);
-  }
-
-  /* ---------- theme toggle ---------- */
-
-  var themeMeta = document.querySelector('meta[name="theme-color"]');
-  var applyThemeColor = function () {
-    if (themeMeta) {
-      themeMeta.content =
-        document.documentElement.dataset.theme === "light" ? "#f2efe7" : "#0c0c0b";
-    }
-  };
-  applyThemeColor();
-
-  var toggle = document.getElementById("themeToggle");
-  if (toggle) {
-    toggle.addEventListener("click", function () {
-      var next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-      document.documentElement.dataset.theme = next;
-      try { localStorage.setItem("theme", next); } catch (e) { /* private mode */ }
-      applyThemeColor();
-    });
-  }
+  var EMAIL_B64 = "YmVuY3lpQG1lLmNvbQ==";
 
   /* ---------- toast ---------- */
 
@@ -67,600 +17,616 @@
     toast.textContent = msg;
     toast.classList.add("show");
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { toast.classList.remove("show"); }, ms || 2600);
+    toastTimer = setTimeout(function () {
+      toast.classList.remove("show");
+    }, ms || 2400);
   }
 
-  /* ---------- contact form ----------
-     No backend, no exposed address: the form assembles a mailto at submit
-     time. The address only exists base64-encoded here, never in markup. */
+  /* ---------- live Austin clock + day/night dot ---------- */
 
-  var contactForm = document.getElementById("contactForm");
-  if (contactForm) {
-    contactForm.addEventListener("submit", function (e) {
-      e.preventDefault();
-      var addr = atob("YmVuY3lpQG1lLmNvbQ==");
-      var data = new FormData(contactForm);
-      var subject = "Website message from " + data.get("name");
-      var body = data.get("message") +
-        "\n\n— " + data.get("name") + " <" + data.get("email") + ">";
-      window.location.href = "mailto:" + addr +
-        "?subject=" + encodeURIComponent(subject) +
-        "&body=" + encodeURIComponent(body);
-      showToast("OPENING YOUR MAIL APP…");
+  var clock = document.getElementById("clock");
+  var skyDot = document.getElementById("skyIndicator");
+  if (clock) {
+    var fmtTime = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Chicago",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true
     });
+    var fmtHour = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Chicago",
+      hour: "numeric",
+      hour12: false
+    });
+    var tick = function () {
+      var now = new Date();
+      clock.textContent = fmtTime.format(now) + " CT";
+      clock.dateTime = now.toISOString();
+      if (skyDot) {
+        var h = parseInt(fmtHour.format(now), 10);
+        var isDay = h >= 6 && h < 19;
+        skyDot.style.background = isDay ? "#d97706" : "var(--accent)";
+        skyDot.title = isDay ? "Daytime in Austin" : "Nighttime in Austin";
+      }
+    };
+    tick();
+    setInterval(tick, 15000);
   }
 
-  /* ---------- the name is a physics toy ----------
-     Every glyph of the ASCII art becomes a particle on a canvas. On load
-     the name scrambles into place column by column. The cursor shoves
-     glyphs aside — they glow accent while displaced — and they spring
-     back home. Clicking anywhere in the hero detonates the whole name;
-     it reassembles itself. Order, restored. Reduced motion (or no JS)
-     keeps the static <pre>. */
+  /* ---------- theme toggle ---------- */
 
-  var GLYPHS = "█▓▒░╳#%&*+=";
-  var ascii = document.getElementById("heroAscii");
-  var heroSection = document.querySelector(".hero");
+  var themeMeta = document.querySelector('meta[name="theme-color"]');
 
-  if (ascii && heroSection && !reduced && window.HTMLCanvasElement) {
-    // Pull the mono face in explicitly so the canvas never measures a
-    // fallback font; fonts.ready alone can race the stylesheet.
-    document.fonts.load("500 25px 'JetBrains Mono'").then(function () {
-      return document.fonts.ready;
-    }).then(initNameToy)["catch"](initNameToy);
+  function applyThemeMeta() {
+    if (!themeMeta) return;
+    themeMeta.content =
+      document.documentElement.dataset.theme === "dark" ? "#0c0d10" : "#f5f3ee";
+  }
+  applyThemeMeta();
+
+  function toggleTheme() {
+    var next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem("theme", next); } catch (e) { /* private mode */ }
+    applyThemeMeta();
+    if (window.BenPhysics && window.BenPhysics.notifyTheme) {
+      window.BenPhysics.notifyTheme();
+    }
   }
 
-  function initNameToy() {
-    var PAD = 160;                  // breathing room so flung glyphs don't clip
-    var PER_COL = 16, PRE = 300;    // scramble timing
-    var lines = ascii.textContent.split("\n");
+  var toggleBtn = document.getElementById("themeToggle");
+  if (toggleBtn) {
+    toggleBtn.addEventListener("click", toggleTheme);
+  }
 
-    var canvas = document.createElement("canvas");
-    canvas.className = "hero__canvas";
-    canvas.setAttribute("aria-hidden", "true");
-    ascii.parentNode.appendChild(canvas);
-    var ctx = canvas.getContext("2d");
+  /* ---------- hero 3D manifold pulse button ---------- */
 
-    var parts = [];
-    var w, h, fs, lineH;
-    var palette = [];               // ink → accent ramp, 12 steps
-    var mouse = { x: -1e4, y: -1e4, vx: 0, vy: 0 };
-    var rafId = null;
-    var born = performance.now();
-    var scrambleDone = false;
-
-    function hexToRgb(s) {
-      s = s.trim().replace("#", "");
-      if (s.length === 3) s = s[0] + s[0] + s[1] + s[1] + s[2] + s[2];
-      var n = parseInt(s, 16);
-      return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-    }
-
-    function buildPalette() {
-      var cs = getComputedStyle(document.documentElement);
-      var a = hexToRgb(cs.getPropertyValue("--ink"));
-      var b = hexToRgb(cs.getPropertyValue("--accent"));
-      palette = [];
-      for (var i = 0; i <= 11; i++) {
-        var k = i / 11;
-        palette.push("rgb(" +
-          Math.round(a[0] + (b[0] - a[0]) * k) + "," +
-          Math.round(a[1] + (b[1] - a[1]) * k) + "," +
-          Math.round(a[2] + (b[2] - a[2]) * k) + ")");
+  var pulseBtn = document.getElementById("pulseField");
+  if (pulseBtn) {
+    pulseBtn.addEventListener("click", function () {
+      if (window.BenPhysics && window.BenPhysics.pulseHero) {
+        window.BenPhysics.pulseHero();
       }
-    }
-
-    function build() {
-      var rect = ascii.getBoundingClientRect();
-      var dpr = window.devicePixelRatio || 1;
-      fs = parseFloat(getComputedStyle(ascii).fontSize);
-      lineH = fs * 1.06;
-      w = rect.width + PAD * 2;
-      h = rect.height + PAD * 2;
-      canvas.width = w * dpr;
-      canvas.height = h * dpr;
-      canvas.style.width = w + "px";
-      canvas.style.height = h + "px";
-      canvas.style.left = (ascii.offsetLeft - PAD) + "px";
-      canvas.style.top = (ascii.offsetTop - PAD) + "px";
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.font = "500 " + fs + "px 'JetBrains Mono', ui-monospace, monospace";
-      ctx.textBaseline = "top";
-      var charW = ctx.measureText("█").width;
-      parts = [];
-      var minOff = Infinity;
-      for (var r = 0; r < lines.length; r++) {
-        // mirror the pre's text-align: center, line by line
-        var lineW = lines[r].replace(/\s+$/, "").length * charW;
-        var offX = (rect.width - lineW) / 2;
-        if (lines[r].trim() && offX < minOff) minOff = offX;
-        for (var c = 0; c < lines[r].length; c++) {
-          var ch = lines[r][c];
-          if (ch === " ") continue;
-          var hx = PAD + offX + c * charW;
-          var hy = PAD + r * lineH;
-          parts.push({ ch: ch, col: c, hx: hx, hy: hy, x: hx, y: hy, vx: 0, vy: 0 });
-        }
-      }
-      // align the hero's intro copy with the art's true left edge
-      heroSection.style.setProperty("--hero-indent", Math.max(0, minOff).toFixed(1) + "px");
-    }
-
-    function frame(now) {
-      ctx.clearRect(0, 0, w, h);
-      var t = now - born;
-      var active = false;
-      if (!scrambleDone) {
-        active = true;
-        if (t > PRE + 74 * PER_COL) scrambleDone = true;
-      }
-      var R = fs * 6.5;
-      var R2 = R * R;
-      for (var i = 0; i < parts.length; i++) {
-        var p = parts[i];
-        var dx = p.x - mouse.x, dy = p.y - mouse.y;
-        var d2 = dx * dx + dy * dy;
-        if (d2 < R2) {
-          var d = Math.sqrt(d2) || 1;
-          var f = 1 - d / R;
-          f *= f;
-          p.vx += (dx / d) * f * 3.4 + mouse.vx * f * 0.22;
-          p.vy += (dy / d) * f * 3.4 + mouse.vy * f * 0.22;
-        }
-        p.vx += (p.hx - p.x) * 0.02;
-        p.vy += (p.hy - p.y) * 0.02;
-        p.vx *= 0.88;
-        p.vy *= 0.88;
-        p.x += p.vx;
-        p.y += p.vy;
-
-        var ox = p.x - p.hx, oy = p.y - p.hy;
-        var off2 = ox * ox + oy * oy;
-        if (off2 > 0.03 || p.vx * p.vx + p.vy * p.vy > 0.03) active = true;
-
-        var ch = p.ch;
-        if (!scrambleDone && t < PRE + p.col * PER_COL) {
-          ch = GLYPHS[(Math.random() * GLYPHS.length) | 0];
-        }
-        var heat = Math.min(Math.sqrt(off2) / (fs * 2.2), 1);
-        ctx.fillStyle = palette[(heat * 11) | 0];
-        ctx.fillText(ch, p.x, p.y);
-      }
-      if (active) {
-        rafId = requestAnimationFrame(frame);
-      } else {
-        rafId = null; // everything home and still — sleep until poked
-      }
-    }
-
-    function wake() {
-      if (!rafId) rafId = requestAnimationFrame(frame);
-    }
-
-    function toCanvas(e) {
-      var rc = canvas.getBoundingClientRect();
-      return { x: e.clientX - rc.left, y: e.clientY - rc.top };
-    }
-
-    heroSection.addEventListener("pointermove", function (e) {
-      var pt = toCanvas(e);
-      var nvx = pt.x - mouse.x, nvy = pt.y - mouse.y;
-      // ignore the jump on the first event after entering
-      if (Math.abs(nvx) < 120 && Math.abs(nvy) < 120) {
-        mouse.vx = nvx;
-        mouse.vy = nvy;
-      } else {
-        mouse.vx = 0;
-        mouse.vy = 0;
-      }
-      mouse.x = pt.x;
-      mouse.y = pt.y;
-      wake();
-    });
-
-    heroSection.addEventListener("pointerleave", function () {
-      mouse.x = -1e4;
-      mouse.y = -1e4;
-      mouse.vx = 0;
-      mouse.vy = 0;
-    });
-
-    // Click (not on a link/button) = detonate. The spring brings it home.
-    heroSection.addEventListener("pointerdown", function (e) {
-      if (e.target.closest("a, button")) return;
-      var pt = toCanvas(e);
-      for (var i = 0; i < parts.length; i++) {
-        var p = parts[i];
-        var dx = p.x - pt.x, dy = p.y - pt.y;
-        var d = Math.sqrt(dx * dx + dy * dy) || 1;
-        var imp = 30 * Math.exp(-d / 320) * (0.6 + Math.random() * 0.8);
-        p.vx += (dx / d) * imp;
-        p.vy += (dy / d) * imp + (Math.random() - 0.5) * 2;
-      }
-      wake();
-    });
-
-    var themeBtn = document.getElementById("themeToggle");
-    if (themeBtn) {
-      themeBtn.addEventListener("click", function () {
-        buildPalette();
-        wake();
-      });
-    }
-
-    var resizeTimer;
-    window.addEventListener("resize", function () {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(function () {
-        build();
-        wake();
-      }, 150);
-    });
-
-    buildPalette();
-    build();
-    ascii.classList.add("ghost"); // canvas takes over painting
-    wake();
-
-    // If the webfont lands after init, metrics changed — rebuild the grid.
-    document.fonts.addEventListener("loadingdone", function () {
-      build();
-      wake();
     });
   }
 
-  /* ---------- the hero field ----------
-     A procedural WebGL backdrop behind the name, in the spirit of the
-     ThreeUI background catalog: three variants sharing one fragment
-     shader — EMBER (a warped ember horizon), FLUX (domain-warped flow
-     contours), MATRIX (a noise-driven dot lattice). Raw WebGL, no
-     library. The variant picker is ThreeUI's idea too: the visitor
-     tunes the background. Falls back to the CSS wash when WebGL is
-     absent; under reduced motion it renders one frozen frame. */
+  /* ---------- scroll choreography: progress rail, hero 3D flyover & spring pill nav ---------- */
 
-  var FIELDS = ["EMBER", "FLUX", "MATRIX"];
-
-  var FIELD_VERT =
-    "attribute vec2 aPos;" +
-    "void main(){ gl_Position = vec4(aPos, 0.0, 1.0); }";
-
-  var FIELD_FRAG = [
-    "precision highp float;",
-    "uniform vec2 uRes; uniform float uTime; uniform vec2 uPtr;",
-    "uniform vec3 uAccent; uniform vec3 uInk; uniform float uMode; uniform float uLight;",
-
-    "float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123); }",
-
-    "float noise(vec2 p){",
-    "  vec2 i = floor(p), f = fract(p);",
-    "  vec2 u = f * f * (3.0 - 2.0 * f);",
-    "  return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x),",
-    "             mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);",
-    "}",
-
-    "float fbm(vec2 p){",
-    "  float v = 0.0, a = 0.5;",
-    "  for (int i = 0; i < 5; i++){ v += a * noise(p); p = p * 2.03 + 7.1; a *= 0.5; }",
-    "  return v;",
-    "}",
-
-    // EMBER: a dark ground, an undulating horizon line, and heat rising
-    // off it — the ThreeUI "at the horizon" idea, redrawn in one pass.
-    "float ember(vec2 p, float t){",
-    "  float w = fbm(vec2(p.x * 0.85 + t * 0.05, t * 0.06));",
-    "  float hy = -0.66 + 0.24 * (w - 0.5);",
-    "  float d = p.y - hy;",
-    "  float plume = fbm(vec2(p.x * 1.5 - t * 0.05, p.y * 1.15 - t * 0.24));",
-    "  float glow = exp(-max(d, 0.0) * (4.1 - 2.1 * plume)) * (0.22 + 1.0 * plume);",
-    "  glow *= smoothstep(-0.10, 0.14, d);",
-    "  float line = smoothstep(0.045, 0.0, abs(d)) * (0.45 + 0.75 * plume);",
-    "  float spark = pow(fbm(p * 8.0 + vec2(t * 0.1, -t * 0.55)), 7.0) * 7.0;",
-    "  spark *= smoothstep(1.15, 0.0, d) * step(0.0, d);",
-    "  return glow * 1.2 + line * 0.9 + spark * 0.5;",
-    "}",
-
-    // FLUX: contour bands through a domain-warped field.
-    "float flux(vec2 p, float t){",
-    "  vec2 q = vec2(fbm(p * 1.15 + t * 0.05), fbm(p * 1.15 + vec2(4.3, 1.7) - t * 0.04));",
-    "  float n = fbm(p * 1.6 + q * 2.0);",
-    "  float band = abs(fract(n * 6.2 - t * 0.12) - 0.5);",
-    "  float v = smoothstep(0.05, 0.0, band) * 1.35;",
-    "  return v * (0.3 + 0.9 * smoothstep(1.35, -0.95, p.y));",
-    "}",
-
-    // MATRIX: a dot lattice whose radii breathe with drifting noise.
-    "float matrixField(vec2 p, float t){",
-    "  vec2 g = p * 13.0;",
-    "  vec2 f = fract(g) - 0.5;",
-    "  float m = fbm(floor(g) * 0.17 + vec2(t * 0.1, -t * 0.06));",
-    "  float r = 0.05 + 0.42 * pow(max(m - 0.3, 0.0) * 2.0, 1.3);",
-    "  float v = smoothstep(r, r - 0.14, length(f)) * 0.95;",
-    "  return v * (0.22 + 0.95 * smoothstep(1.3, -0.95, p.y));",
-    "}",
-
-    "void main(){",
-    "  vec2 uv = (gl_FragCoord.xy - 0.5 * uRes) / min(uRes.x, uRes.y) * 2.0;",
-    "  vec2 p = uv + uPtr * 0.14;",
-    "  float v = 0.0;",
-    "  if (uMode < 0.5) v = ember(p, uTime);",
-    "  else if (uMode < 1.5) v = flux(p, uTime);",
-    "  else v = matrixField(p, uTime);",
-    "  v *= smoothstep(2.3, 0.4, length(uv * vec2(0.7, 1.0)));",
-    "  v = clamp(v, 0.0, 1.5);",
-    // Dark theme emits light; the paper theme prints it. Screen the same
-    // field through a 30-degree halftone so it lands as ink, not a smudge.
-    "  vec2 hp = mat2(0.866, -0.5, 0.5, 0.866) * (gl_FragCoord.xy / 6.5);",
-    "  float rad = sqrt(clamp(v, 0.0, 1.0)) * 0.64;",
-    "  float ink = smoothstep(rad, rad - 0.16, length(fract(hp) - 0.5)) * step(0.09, v);",
-    // MATRIX is already a lattice — screening a lattice only makes moire,
-    // so it just gets a harder edge instead.
-    "  float screened = mix(smoothstep(0.30, 0.95, v), ink, step(uMode, 1.5));",
-    "  v = mix(v, screened, uLight);",
-    "  vec3 hot = mix(uAccent, vec3(1.0, 0.87, 0.62), smoothstep(1.05, 1.85, v));",
-    "  vec3 col = mix(hot, mix(uAccent, uInk, 0.32), uLight);",
-    "  gl_FragColor = vec4(col, clamp(v, 0.0, 1.0) * mix(0.72, 0.55, uLight));",
-    "}"
-  ].join("\n");
-
-  initHeroField();
-
-  function initHeroField() {
-    var hero = document.querySelector(".hero");
-    var ctl = document.getElementById("fieldCtl");
-    var ctlVal = document.getElementById("fieldCtlVal");
-    if (!hero || !window.WebGLRenderingContext) return;
-
-    var canvas = document.createElement("canvas");
-    canvas.className = "hero__field";
-    canvas.setAttribute("aria-hidden", "true");
-
-    var gl;
-    try {
-      gl = canvas.getContext("webgl", {
-        alpha: true, antialias: false, depth: false, stencil: false,
-        premultipliedAlpha: false, powerPreference: "low-power"
-      });
-    } catch (e) { gl = null; }
-    if (!gl) return;
-
-    var prog = link(FIELD_VERT, FIELD_FRAG);
-    if (!prog) return;
-
-    hero.insertBefore(canvas, hero.firstChild);
-
-    var buf = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-    var aPos = gl.getAttribLocation(prog, "aPos");
-    gl.enableVertexAttribArray(aPos);
-    gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
-
-    var U = {};
-    ["uRes", "uTime", "uPtr", "uAccent", "uInk", "uMode", "uLight"].forEach(function (n) {
-      U[n] = gl.getUniformLocation(prog, n);
-    });
-
-    gl.useProgram(prog);
-    gl.enable(gl.BLEND);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-    gl.clearColor(0, 0, 0, 0);
-
-    var mode = 0;
-    try {
-      var saved = FIELDS.indexOf(localStorage.getItem("field"));
-      if (saved >= 0) mode = saved;
-    } catch (e) { /* private mode */ }
-
-    var ptr = { x: 0, y: 0, tx: 0, ty: 0 };
-    var visible = true;
-    var running = false;
-    var t0 = performance.now();
-
-    function link(vs, fs) {
-      function shader(type, src) {
-        var sh = gl.createShader(type);
-        gl.shaderSource(sh, src);
-        gl.compileShader(sh);
-        return gl.getShaderParameter(sh, gl.COMPILE_STATUS) ? sh : null;
-      }
-      var v = shader(gl.VERTEX_SHADER, vs);
-      var f = shader(gl.FRAGMENT_SHADER, fs);
-      if (!v || !f) return null;
-      var p = gl.createProgram();
-      gl.attachShader(p, v);
-      gl.attachShader(p, f);
-      gl.linkProgram(p);
-      return gl.getProgramParameter(p, gl.LINK_STATUS) ? p : null;
-    }
-
-    function rgb(name) {
-      var hex = getComputedStyle(document.documentElement).getPropertyValue(name).trim().replace("#", "");
-      if (hex.length === 3) hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
-      var n = parseInt(hex, 16);
-      return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
-    }
-
-    function paint() {
-      var a = rgb("--accent");
-      var k = rgb("--ink");
-      gl.uniform3f(U.uAccent, a[0], a[1], a[2]);
-      gl.uniform3f(U.uInk, k[0], k[1], k[2]);
-      gl.uniform1f(U.uLight, document.documentElement.dataset.theme === "light" ? 1 : 0);
-      gl.uniform1f(U.uMode, mode);
-    }
-
-    function size() {
-      var r = canvas.getBoundingClientRect();
-      // render below device resolution: the field is soft by design and
-      // this keeps a full-bleed shader cheap on phones
-      var scale = Math.min(window.devicePixelRatio || 1, 1.5) * 0.7;
-      var w = Math.max(1, Math.round(r.width * scale));
-      var h = Math.max(1, Math.round(r.height * scale));
-      if (canvas.width === w && canvas.height === h) return;
-      canvas.width = w;
-      canvas.height = h;
-      gl.viewport(0, 0, w, h);
-      gl.uniform2f(U.uRes, w, h);
-    }
-
-    function draw(time) {
-      gl.uniform1f(U.uTime, time);
-      gl.uniform2f(U.uPtr, ptr.x, ptr.y);
-      gl.clear(gl.COLOR_BUFFER_BIT);
-      gl.drawArrays(gl.TRIANGLES, 0, 3);
-    }
-
-    function frame(now) {
-      if (!running) return;
-      ptr.x += (ptr.tx - ptr.x) * 0.05;
-      ptr.y += (ptr.ty - ptr.y) * 0.05;
-      draw((now - t0) / 1000);
-      requestAnimationFrame(frame);
-    }
-
-    function start() {
-      if (running || reduced || !visible || document.hidden) return;
-      running = true;
-      requestAnimationFrame(frame);
-    }
-    function stop() { running = false; }
-
-    function still() { size(); paint(); draw(6.2); }
-
-    if (!reduced) {
-      hero.addEventListener("pointermove", function (e) {
-        var r = hero.getBoundingClientRect();
-        ptr.tx = ((e.clientX - r.left) / r.width - 0.5) * 2;
-        ptr.ty = -((e.clientY - r.top) / r.height - 0.5) * 2;
-      });
-      hero.addEventListener("pointerleave", function () { ptr.tx = 0; ptr.ty = 0; });
-      document.addEventListener("visibilitychange", function () {
-        if (document.hidden) stop(); else start();
-      });
-      if ("IntersectionObserver" in window) {
-        new IntersectionObserver(function (entries) {
-          visible = entries[0].isIntersecting;
-          if (visible) start(); else stop();
-        }, { threshold: 0 }).observe(hero);
-      }
-    }
-
-    var sizeTimer;
-    window.addEventListener("resize", function () {
-      clearTimeout(sizeTimer);
-      sizeTimer = setTimeout(function () { size(); if (reduced) still(); }, 150);
-    });
-
-    var themeBtn = document.getElementById("themeToggle");
-    if (themeBtn) {
-      themeBtn.addEventListener("click", function () {
-        paint();
-        if (reduced) still();
-      });
-    }
-
-    if (ctl && ctlVal) {
-      ctl.hidden = false;
-      ctlVal.textContent = FIELDS[mode];
-      ctl.addEventListener("click", function () {
-        mode = (mode + 1) % FIELDS.length;
-        ctlVal.textContent = FIELDS[mode];
-        try { localStorage.setItem("field", FIELDS[mode]); } catch (e) { /* private mode */ }
-        paint();
-        if (reduced) still();
-        showToast("FIELD — " + FIELDS[mode], 1500);
-      });
-    }
-
-    size();
-    paint();
-    draw(reduced ? 6.2 : 0);
-    canvas.classList.add("on");
-    start();
-  }
-
-  /* ---------- scroll progress + the section the reader is in ---------- */
-
-  var head = document.querySelector(".site-head");
-  var navLinks = [].slice.call(document.querySelectorAll(".site-nav a"));
+  var siteHead = document.getElementById("siteHead");
+  var scrollBar = document.getElementById("scrollBar");
+  var heroEl = document.querySelector(".hero");
+  var pillNav = document.querySelector(".pill-nav");
+  var navThumb = document.getElementById("navThumb");
+  var navLinks = pillNav ? [].slice.call(pillNav.querySelectorAll("a")) : [];
   var navTargets = navLinks.map(function (a) {
-    // paper pages link out ("../#research"), which is not a valid selector
     var href = a.getAttribute("href") || "";
     return href.charAt(0) === "#" ? document.querySelector(href) : null;
   });
 
-  if (head) {
-    var pending = false;
-    var syncScroll = function () {
-      pending = false;
-      var max = document.documentElement.scrollHeight - window.innerHeight;
-      head.style.setProperty("--progress", (max > 0 ? Math.min(window.scrollY / max, 1) : 0).toFixed(4));
+  function positionNavThumb(link) {
+    if (!navThumb || !pillNav) return;
+    if (!link) {
+      navThumb.style.opacity = "0";
+      return;
+    }
+    var pr = pillNav.getBoundingClientRect();
+    var lr = link.getBoundingClientRect();
+    navThumb.style.width = lr.width.toFixed(1) + "px";
+    navThumb.style.transform = "translateX(" + (lr.left - pr.left).toFixed(1) + "px)";
+    navThumb.style.opacity = "1";
+  }
 
+  var activeNavIdx = -1;
+  var hoverNavLink = null;
+
+  navLinks.forEach(function (link) {
+    link.addEventListener("pointerenter", function () {
+      hoverNavLink = link;
+      positionNavThumb(link);
+    });
+  });
+  if (pillNav) {
+    pillNav.addEventListener("pointerleave", function () {
+      hoverNavLink = null;
+      positionNavThumb(activeNavIdx >= 0 ? navLinks[activeNavIdx] : null);
+    });
+  }
+
+  var scrollQueued = false;
+  var lastScrollY = window.scrollY || 0;
+
+  function syncScroll() {
+    scrollQueued = false;
+    var y = window.scrollY || 0;
+    var vel = (y - lastScrollY) * 0.04;
+    lastScrollY = y;
+
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    if (scrollBar) {
+      scrollBar.style.transform = "scaleX(" + (max > 0 ? Math.min(y / max, 1) : 0).toFixed(4) + ")";
+    }
+    if (siteHead) {
+      siteHead.classList.toggle("is-scrolled", y > 24);
+    }
+
+    // Drive 3D Hero Camera Flyover + Parallax
+    if (heroEl) {
+      var hh = heroEl.offsetHeight || window.innerHeight;
+      var hp = Math.max(0, Math.min(1.2, y / Math.max(hh, 1)));
+      if (!reduced) {
+        heroEl.style.setProperty("--hero-scroll", Math.min(hp, 1).toFixed(4));
+      }
+      if (window.BenPhysics && window.BenPhysics.setHeroScroll) {
+        window.BenPhysics.setHeroScroll(hp, vel);
+      }
+    }
+
+    if (navLinks.length) {
       var line = window.innerHeight * 0.38;
       var active = -1;
       for (var i = 0; i < navTargets.length; i++) {
         var el = navTargets[i];
         if (el && el.getBoundingClientRect().top <= line) active = i;
       }
-      for (var j = 0; j < navLinks.length; j++) {
-        if (j === active) navLinks[j].setAttribute("aria-current", "true");
-        else navLinks[j].removeAttribute("aria-current");
+      if (active !== activeNavIdx) {
+        activeNavIdx = active;
+        for (var j = 0; j < navLinks.length; j++) {
+          if (j === active) navLinks[j].setAttribute("aria-current", "true");
+          else navLinks[j].removeAttribute("aria-current");
+        }
+        if (!hoverNavLink) {
+          positionNavThumb(active >= 0 ? navLinks[active] : null);
+        }
       }
-    };
-    var onScroll = function () {
-      if (pending) return;
-      pending = true;
-      requestAnimationFrame(syncScroll);
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    syncScroll();
+    }
   }
 
-  /* ---------- pointer-lit cards ----------
-     Each card tracks the cursor and lights up under it, the way the
-     ThreeUI browse grid reacts to a pointer. CSS does the drawing. */
-
-  [].forEach.call(document.querySelectorAll(".spot"), function (el) {
-    var queued = false;
-    var px = 0, py = 0;
-    el.addEventListener("pointermove", function (e) {
-      px = e.clientX;
-      py = e.clientY;
-      if (queued) return;
-      queued = true;
-      requestAnimationFrame(function () {
-        queued = false;
-        var r = el.getBoundingClientRect();
-        if (!r.width || !r.height) return;
-        el.style.setProperty("--sx", (((px - r.left) / r.width) * 100).toFixed(1) + "%");
-        el.style.setProperty("--sy", (((py - r.top) / r.height) * 100).toFixed(1) + "%");
-      });
-    });
+  function onScroll() {
+    if (scrollQueued) return;
+    scrollQueued = true;
+    requestAnimationFrame(syncScroll);
+  }
+  window.addEventListener("scroll", onScroll, { passive: true });
+  window.addEventListener("resize", function () {
+    onScroll();
+    if (!hoverNavLink && activeNavIdx >= 0) {
+      positionNavThumb(navLinks[activeNavIdx]);
+    }
   });
+  syncScroll();
 
-  /* ---------- kinetic headings ----------
-     Section headings arrive a word at a time from behind a mask —
-     the type treatment ThreeUI leans on across its landing pages.
-     Non-breaking spaces stay glued, so deliberate line breaks survive. */
+  /* ---------- kinetic masked editorial headings ---------- */
 
   if (!reduced) {
-    [].forEach.call(document.querySelectorAll(".section h2"), function (h) {
-      if (h.children.length) return; // only split plain-text headings
-      var words = h.textContent.trim().split(/[ \t\n\r]+/);
+    [].forEach.call(document.querySelectorAll(".kinetic-title"), function (h) {
+      if (h.children.length) return;
+      var words = h.textContent.trim().split(/\s+/);
       if (words.length < 2) return;
       h.textContent = "";
-      words.forEach(function (word, i) {
+      words.forEach(function (w, i) {
         var outer = document.createElement("span");
         outer.className = "kw";
-        outer.style.setProperty("--i", i);
+        outer.style.setProperty("--wi", i);
         var inner = document.createElement("span");
-        inner.textContent = word;
+        inner.textContent = w;
         outer.appendChild(inner);
         h.appendChild(outer);
         if (i < words.length - 1) h.appendChild(document.createTextNode(" "));
       });
-      h.classList.add("kinetic");
+    });
+  }
+
+  /* ---------- writing & research: segmented filter + 3D floating preview ---------- */
+
+  var segWrap = document.querySelector(".segmented");
+  var segThumb = document.getElementById("segThumb");
+  var segBtns = segWrap ? [].slice.call(segWrap.querySelectorAll(".segmented__btn")) : [];
+  var writingItems = [].slice.call(document.querySelectorAll("#writingList .index-item"));
+
+  function moveSegThumb(btn) {
+    if (!segThumb || !segWrap || !btn) return;
+    var wr = segWrap.getBoundingClientRect();
+    var br = btn.getBoundingClientRect();
+    segThumb.style.width = br.width.toFixed(1) + "px";
+    segThumb.style.transform = "translateX(" + (br.left - wr.left).toFixed(1) + "px)";
+  }
+
+  if (segBtns.length) {
+    segBtns.forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var filter = btn.getAttribute("data-filter");
+        segBtns.forEach(function (b) {
+          var on = b === btn;
+          b.classList.toggle("is-active", on);
+          b.setAttribute("aria-selected", on ? "true" : "false");
+        });
+        moveSegThumb(btn);
+
+        writingItems.forEach(function (item) {
+          var kind = item.getAttribute("data-kind");
+          var show = filter === "all" || kind === filter;
+          item.classList.toggle("is-hidden", !show);
+        });
+      });
+    });
+
+    var syncSeg = function () {
+      var activeBtn = segWrap.querySelector(".segmented__btn.is-active");
+      moveSegThumb(activeBtn);
+    };
+    syncSeg();
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(syncSeg);
+    }
+    window.addEventListener("resize", syncSeg);
+  }
+
+  var preview = document.getElementById("floatPreview");
+  var previewImg = document.getElementById("floatPreviewImg");
+  var previewCap = document.getElementById("floatPreviewCap");
+  var writingList = document.getElementById("writingList");
+
+  if (preview && previewImg && previewCap && writingList && !reduced && window.matchMedia("(hover: hover) and (min-width: 1021px)").matches) {
+    var pv = { x: 0, y: 0, tx: 0, ty: 0, vx: 0, vy: 0, active: false, raf: null };
+    var preloaded = false;
+
+    function preloadPreviews() {
+      if (preloaded) return;
+      preloaded = true;
+      writingItems.forEach(function (item) {
+        var src = item.getAttribute("data-preview");
+        if (src) {
+          var im = new Image();
+          im.src = src;
+        }
+      });
+    }
+
+    function placeTarget(clientX, clientY) {
+      var pw = 310, ph = 210;
+      var x = clientX + 28;
+      if (x + pw + 20 > window.innerWidth) x = clientX - pw - 28;
+      var y = Math.min(Math.max(clientY - ph * 0.5, 76), window.innerHeight - ph - 24);
+      pv.tx = x;
+      pv.ty = y;
+    }
+
+    function tickPreview() {
+      var dx = pv.tx - pv.x;
+      var dy = pv.ty - pv.y;
+      pv.vx = dx * 0.16;
+      pv.vy = dy * 0.16;
+      pv.x += pv.vx;
+      pv.y += pv.vy;
+      var rotZ = Math.max(-4.5, Math.min(4.5, pv.vx * 0.22));
+      var rotX = Math.max(-8, Math.min(8, -pv.vy * 0.3));
+      var rotY = Math.max(-8, Math.min(8, pv.vx * 0.3));
+      var sc = pv.active ? 1 : 0.94;
+      preview.style.transform =
+        "translate3d(" + pv.x.toFixed(1) + "px," + pv.y.toFixed(1) + "px,0) perspective(700px) rotateX(" +
+        rotX.toFixed(2) + "deg) rotateY(" + rotY.toFixed(2) + "deg) rotateZ(" + rotZ.toFixed(2) + "deg) scale(" + sc + ")";
+
+      if (pv.active || Math.abs(dx) > 0.4 || Math.abs(dy) > 0.4) {
+        pv.raf = requestAnimationFrame(tickPreview);
+      } else {
+        pv.raf = null;
+      }
+    }
+
+    writingItems.forEach(function (item) {
+      item.addEventListener("pointerenter", function (e) {
+        preloadPreviews();
+        var src = item.getAttribute("data-preview");
+        var cap = item.getAttribute("data-preview-caption") || "";
+        if (!src) return;
+        if (previewImg.getAttribute("src") !== src) {
+          previewImg.setAttribute("src", src);
+        }
+        previewCap.textContent = cap;
+        placeTarget(e.clientX, e.clientY);
+        if (!pv.active) {
+          pv.x = pv.tx;
+          pv.y = pv.ty;
+        }
+        pv.active = true;
+        preview.classList.add("is-visible");
+        if (!pv.raf) pv.raf = requestAnimationFrame(tickPreview);
+      });
+
+      item.addEventListener("pointermove", function (e) {
+        placeTarget(e.clientX, e.clientY);
+      });
+    });
+
+    writingList.addEventListener("pointerleave", function () {
+      pv.active = false;
+      preview.classList.remove("is-visible");
+    });
+  }
+
+  /* ---------- interactive field notebook (wired to physics.js) ---------- */
+
+  var notebook = document.getElementById("notebook");
+  if (notebook) {
+    var tabs = [].slice.call(notebook.querySelectorAll(".nb-item"));
+
+    function selectDomain(idx, focusTab) {
+      tabs.forEach(function (t, i) {
+        var on = i === idx;
+        t.classList.toggle("is-active", on);
+        t.setAttribute("aria-selected", on ? "true" : "false");
+        if (on && focusTab) t.focus();
+      });
+      if (window.BenPhysics && window.BenPhysics.setSpecimen) {
+        window.BenPhysics.setSpecimen(idx);
+      }
+    }
+
+    tabs.forEach(function (tab, idx) {
+      tab.addEventListener("click", function () {
+        selectDomain(idx, false);
+      });
+      tab.addEventListener("pointerenter", function (e) {
+        if (e.pointerType === "mouse") selectDomain(idx, false);
+      });
+      tab.addEventListener("keydown", function (e) {
+        if (e.key === "ArrowDown" || e.key === "ArrowRight") {
+          e.preventDefault();
+          selectDomain((idx + 1) % tabs.length, true);
+        } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
+          e.preventDefault();
+          selectDomain((idx - 1 + tabs.length) % tabs.length, true);
+        } else if (e.key === "Home") {
+          e.preventDefault();
+          selectDomain(0, true);
+        } else if (e.key === "End") {
+          e.preventDefault();
+          selectDomain(tabs.length - 1, true);
+        }
+      });
+    });
+  }
+
+  /* ---------- work plate: subtle 3D perspective tilt + tabular roll-in ---------- */
+
+  var workPlate = document.getElementById("workPlate");
+  if (workPlate && !reduced && window.matchMedia("(hover: hover) and (min-width: 900px)").matches) {
+    workPlate.addEventListener("pointermove", function (e) {
+      var r = workPlate.getBoundingClientRect();
+      var px = (e.clientX - r.left) / Math.max(r.width, 1);
+      var py = (e.clientY - r.top) / Math.max(r.height, 1);
+      var rx = (0.5 - py) * 3.2;
+      var ry = (px - 0.5) * 3.8;
+      workPlate.style.setProperty("--wx", (px * 100).toFixed(1) + "%");
+      workPlate.style.setProperty("--wy", (py * 100).toFixed(1) + "%");
+      workPlate.style.transform =
+        "perspective(1100px) rotateX(" + rx.toFixed(2) + "deg) rotateY(" + ry.toFixed(2) + "deg)";
+    });
+    workPlate.addEventListener("pointerleave", function () {
+      workPlate.style.transform = "";
+    });
+  }
+
+  var rollNums = document.querySelectorAll(".roll-num");
+  if (rollNums.length && !reduced && "IntersectionObserver" in window) {
+    var rio = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        var el = entry.target;
+        rio.unobserve(el);
+        var to = parseInt(el.getAttribute("data-to"), 10);
+        var pre = el.getAttribute("data-prefix") || "";
+        var suf = el.getAttribute("data-suffix") || "";
+        var dur = 1100;
+        var start = performance.now();
+        function step(now) {
+          var p = Math.min((now - start) / dur, 1);
+          var eased = 1 - Math.pow(1 - p, 3);
+          el.textContent = pre + Math.round(to * eased).toLocaleString("en-US") + suf;
+          if (p < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+      });
+    }, { threshold: 0.4 });
+    rollNums.forEach(function (el) { rio.observe(el); });
+  }
+
+  /* ---------- copy email + contact form ---------- */
+
+  function copyEmailAddress() {
+    var addr = atob(EMAIL_B64);
+    var btn = document.getElementById("copyEmail");
+    var lbl = document.getElementById("copyEmailLabel");
+    var done = function () {
+      if (btn) btn.classList.add("is-copied");
+      if (lbl) lbl.textContent = "Copied — " + addr;
+      showToast("Email copied to clipboard");
+      setTimeout(function () {
+        if (btn) btn.classList.remove("is-copied");
+        if (lbl) lbl.textContent = "Copy email address";
+      }, 2800);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(addr).then(done)["catch"](function () {
+        window.location.href = "mailto:" + addr;
+      });
+    } else {
+      window.location.href = "mailto:" + addr;
+    }
+  }
+
+  var copyEmailBtn = document.getElementById("copyEmail");
+  if (copyEmailBtn) {
+    copyEmailBtn.addEventListener("click", copyEmailAddress);
+  }
+
+  var contactForm = document.getElementById("contactForm");
+  if (contactForm) {
+    contactForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var addr = atob(EMAIL_B64);
+      var data = new FormData(contactForm);
+      var subject = "Note from " + data.get("name");
+      var body = data.get("message") +
+        "\n\n— " + data.get("name") + " <" + data.get("email") + ">";
+      window.location.href = "mailto:" + addr +
+        "?subject=" + encodeURIComponent(subject) +
+        "&body=" + encodeURIComponent(body);
+      showToast("Opening your mail app…");
+    });
+  }
+
+  /* ---------- command palette (⌘K) ---------- */
+
+  var cmdBackdrop = document.getElementById("cmdBackdrop");
+  var cmdInput = document.getElementById("cmdInput");
+  var cmdList = document.getElementById("cmdList");
+  var cmdOpenBtn = document.getElementById("cmdOpen");
+
+  if (cmdBackdrop && cmdInput && cmdList) {
+    var COMMANDS = [
+      { group: "Navigate", label: "Writing & Research", hint: "Section", run: function () { jumpTo("#writing"); } },
+      { group: "Navigate", label: "Interactive Physics Lab", hint: "Section", run: function () { jumpTo("#curiosities"); } },
+      { group: "Navigate", label: "Work — RestoreFast", hint: "Section", run: function () { jumpTo("#work"); } },
+      { group: "Navigate", label: "Contact", hint: "Section", run: function () { jumpTo("#contact"); } },
+
+      { group: "Writing & Papers", label: "The Point Was Always to Be Outgrown", hint: "Essay", run: function () { go("writing/the-point-was-always-to-be-outgrown.html"); } },
+      { group: "Writing & Papers", label: "You Cannot Hire Your Way Out of a Systems Problem", hint: "Essay", run: function () { go("writing/you-cannot-hire-your-way-out-of-a-systems-problem.html"); } },
+      { group: "Writing & Papers", label: "Scale Invariance in Construction Software", hint: "Essay", run: function () { go("writing/scale-invariance-in-construction-software.html"); } },
+      { group: "Writing & Papers", label: "Beyond Transformers", hint: "Paper", run: function () { go("papers/beyond-transformers.html"); } },
+      { group: "Writing & Papers", label: "Continuous Thermodynamic Descent", hint: "Paper", run: function () { go("papers/continuous-thermodynamic-descent.html"); } },
+
+      { group: "Actions", label: "Pulse 3D thermodynamic manifold", hint: "3D", run: function () { jumpTo("#top"); if (window.BenPhysics) window.BenPhysics.pulseHero(); } },
+      { group: "Actions", label: "Toggle light / dark theme", hint: "Theme", run: function () { toggleTheme(); } },
+      { group: "Actions", label: "Copy email address", hint: "Email", run: function () { copyEmailAddress(); } },
+      { group: "Actions", label: "Collapse spacetime", hint: "Physics", run: function () { triggerBlackHole(); } },
+
+      { group: "Elsewhere", label: "X / Twitter (@benc_yi)", hint: "↗", run: function () { window.open("https://x.com/benc_yi", "_blank", "noopener"); } },
+      { group: "Elsewhere", label: "GitHub (bencyi)", hint: "↗", run: function () { window.open("https://github.com/bencyi", "_blank", "noopener"); } },
+      { group: "Elsewhere", label: "LinkedIn", hint: "↗", run: function () { window.open("https://www.linkedin.com/in/bencyi", "_blank", "noopener"); } },
+      { group: "Elsewhere", label: "RestoreFast", hint: "↗", run: function () { window.open("https://www.restorefast.com", "_blank", "noopener"); } }
+    ];
+
+    var filtered = COMMANDS.slice();
+    var selIdx = 0;
+
+    function jumpTo(hash) {
+      var target = document.querySelector(hash);
+      if (target) target.scrollIntoView({ behavior: reduced ? "auto" : "smooth" });
+    }
+    function go(url) {
+      window.location.href = url;
+    }
+
+    function renderCommands(query) {
+      var q = (query || "").trim().toLowerCase();
+      filtered = COMMANDS.filter(function (c) {
+        if (!q) return true;
+        return (c.label + " " + c.group + " " + c.hint).toLowerCase().indexOf(q) !== -1;
+      });
+      selIdx = 0;
+      cmdList.textContent = "";
+
+      if (!filtered.length) {
+        var empty = document.createElement("li");
+        empty.className = "cmd-empty";
+        empty.textContent = "No matching commands.";
+        cmdList.appendChild(empty);
+        return;
+      }
+
+      var lastGroup = "";
+      filtered.forEach(function (cmd, idx) {
+        if (cmd.group !== lastGroup) {
+          lastGroup = cmd.group;
+          var grp = document.createElement("li");
+          grp.className = "cmd-group";
+          grp.textContent = cmd.group;
+          cmdList.appendChild(grp);
+        }
+        var li = document.createElement("li");
+        li.setAttribute("role", "option");
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "cmd-item" + (idx === selIdx ? " is-selected" : "");
+        btn.dataset.idx = idx;
+
+        var lbl = document.createElement("span");
+        lbl.textContent = cmd.label;
+        var hnt = document.createElement("span");
+        hnt.className = "cmd-item__hint";
+        hnt.textContent = cmd.hint;
+
+        btn.appendChild(lbl);
+        btn.appendChild(hnt);
+        btn.addEventListener("click", function () {
+          closeCmd();
+          cmd.run();
+        });
+        btn.addEventListener("pointerenter", function () {
+          updateSelection(idx);
+        });
+        li.appendChild(btn);
+        cmdList.appendChild(li);
+      });
+    }
+
+    function updateSelection(idx) {
+      selIdx = idx;
+      var btns = cmdList.querySelectorAll(".cmd-item");
+      btns.forEach(function (b, i) {
+        b.classList.toggle("is-selected", i === selIdx);
+        if (i === selIdx) b.scrollIntoView({ block: "nearest" });
+      });
+    }
+
+    function openCmd() {
+      cmdBackdrop.hidden = false;
+      cmdInput.value = "";
+      renderCommands("");
+      requestAnimationFrame(function () { cmdInput.focus(); });
+    }
+
+    function closeCmd() {
+      cmdBackdrop.hidden = true;
+    }
+
+    if (cmdOpenBtn) cmdOpenBtn.addEventListener("click", openCmd);
+
+    cmdBackdrop.addEventListener("click", function (e) {
+      if (e.target === cmdBackdrop) closeCmd();
+    });
+
+    cmdInput.addEventListener("input", function () {
+      renderCommands(cmdInput.value);
+    });
+
+    cmdInput.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        closeCmd();
+      } else if (e.key === "ArrowDown" && filtered.length) {
+        e.preventDefault();
+        updateSelection((selIdx + 1) % filtered.length);
+      } else if (e.key === "ArrowUp" && filtered.length) {
+        e.preventDefault();
+        updateSelection((selIdx - 1 + filtered.length) % filtered.length);
+      } else if (e.key === "Enter" && filtered[selIdx]) {
+        e.preventDefault();
+        var item = filtered[selIdx];
+        closeCmd();
+        item.run();
+      }
+    });
+
+    document.addEventListener("keydown", function (e) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        if (cmdBackdrop.hidden) openCmd();
+        else closeCmd();
+      } else if (e.key === "Escape" && !cmdBackdrop.hidden) {
+        closeCmd();
+      }
     });
   }
 
@@ -677,89 +643,37 @@
           io.unobserve(entry.target);
         }
       });
-    }, { threshold: 0.15, rootMargin: "0px 0px -8% 0px" });
+    }, { threshold: 0.12, rootMargin: "0px 0px -6% 0px" });
     revealEls.forEach(function (el) { io.observe(el); });
   }
 
-  /* ---------- count-up stats ---------- */
-
-  function countUp(el) {
-    var target = parseInt(el.getAttribute("data-count"), 10);
-    var prefix = el.getAttribute("data-prefix") || "";
-    var suffix = el.getAttribute("data-suffix") || "";
-    var dur = 1400;
-    var t0 = performance.now();
-    function step(now) {
-      var p = Math.min((now - t0) / dur, 1);
-      var eased = 1 - Math.pow(1 - p, 3);
-      el.textContent = prefix + Math.round(target * eased).toLocaleString("en-US") + (p === 1 ? suffix : "");
-      if (p < 1) requestAnimationFrame(step);
-    }
-    requestAnimationFrame(step);
-  }
-
-  var counts = document.querySelectorAll(".count");
-  if (!reduced && "IntersectionObserver" in window) {
-    // Markup ships the final values (works without JS); zero them out only
-    // now that we know we'll animate them back up.
-    counts.forEach(function (el) {
-      el.textContent = (el.getAttribute("data-prefix") || "") + "0";
-    });
-  }
-  if (reduced || !("IntersectionObserver" in window)) {
-    counts.forEach(function (el) {
-      el.textContent =
-        (el.getAttribute("data-prefix") || "") +
-        parseInt(el.getAttribute("data-count"), 10).toLocaleString("en-US") +
-        (el.getAttribute("data-suffix") || "");
-    });
-  } else {
-    var cio = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (entry.isIntersecting) {
-          countUp(entry.target);
-          cio.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.4 });
-    counts.forEach(function (el) { cio.observe(el); });
-  }
-
-  /* ---------- footer easter egg: total gravitational collapse ----------
-     BREAK THIS PAGE drops the site into a black hole at screen center.
-     Every block becomes infalling matter on a Keplerian spiral
-     (ω ∝ r^-3/2), spaghettifies radially, and redshift-fades crossing
-     the photon sphere. The hole itself: black shadow at 2.5 Rs, photon
-     ring just outside it, a tilted accretion disk with relativistic
-     doppler beaming (approaching side beamed white-hot), a lensed halo,
-     gravitationally lensed background stars, and infalling streams that
-     slow asymptotically near the horizon (time dilation). Then it
-     evaporates — flash, shockwave, Hawking burst — and all matter is
-     ejected back along reversed spirals to exactly where it was. */
+  /* ---------- hidden physics easter egg: gravitational collapse ---------- */
 
   var breakBtn = document.getElementById("breakBtn");
   var collapsing = false;
 
+  function triggerBlackHole() {
+    if (reduced) {
+      showToast("Reduced motion is enabled — spacetime remains intact.");
+      return;
+    }
+    if (collapsing) return;
+    collapsing = true;
+    runBlackHole(function () { collapsing = false; });
+  }
+
   if (breakBtn) {
-    breakBtn.addEventListener("click", function () {
-      if (reduced) {
-        showToast("NOTHING TO BREAK — REDUCED MOTION IS ON. SMART.");
-        return;
-      }
-      if (collapsing) return;
-      collapsing = true;
-      runBlackHole(function () { collapsing = false; });
-    });
+    breakBtn.addEventListener("click", triggerBlackHole);
   }
 
   function runBlackHole(allDone) {
     var W = window.innerWidth, H = window.innerHeight;
     var cx = W / 2, cy = H / 2;
-    var RS = Math.min(W, H) * 0.082;   // Schwarzschild radius at full mass
-    var TILT = -0.16;                  // accretion disk inclination
-    var SQUASH = 0.27;                 // disk plane foreshortening
+    var RS = Math.min(W, H) * 0.082;
+    var TILT = -0.16;
+    var SQUASH = 0.27;
 
-    var T_FALL = 2400, T_HOLD = 1200, T_BOOM = 1900;
+    var T_FALL = 2300, T_HOLD = 1150, T_BOOM = 1850;
     var T_END = T_FALL + T_HOLD + T_BOOM;
 
     var cv = document.createElement("canvas");
@@ -770,20 +684,16 @@
     var dpr = window.devicePixelRatio || 1;
     cv.width = W * dpr;
     cv.height = H * dpr;
-    // canvas is a replaced element: inset alone won't stretch it, so pin
-    // the CSS size or high-DPR screens get a dpr-times-oversized overlay
     cv.style.width = W + "px";
     cv.style.height = H + "px";
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     document.documentElement.classList.add("bh-lock");
 
-    // ----- the matter: every visible block of the page -----
     var matter = [];
     var maxR = 1;
     document.querySelectorAll(
-      "header.site-head, footer.site-foot, .stats__grid > *, .section > *, " +
-      ".hero > *:not(.hero__field):not(.field-ctl)"
+      "header.site-head, footer.site-foot, .hero__inner > *, .band > *"
     ).forEach(function (el) {
       var r = el.getBoundingClientRect();
       if (!r.width || !r.height) return;
@@ -798,15 +708,15 @@
         oldTransition: el.style.transition
       });
     });
+
     matter.forEach(function (m) {
-      m.fallDelay = 120 + (m.r0 / maxR) * 560;  // nearest matter falls first
-      m.outDelay = 260 + (m.r0 / maxR) * 340;   // ejected after the flash clears
-      m.swirl = 2.1 + Math.random() * 1.5;      // total spiral sweep (rad)
-      m.el.style.transition = "none";           // .reveal has a transform transition
+      m.fallDelay = 120 + (m.r0 / maxR) * 540;
+      m.outDelay = 250 + (m.r0 / maxR) * 320;
+      m.swirl = 2.1 + Math.random() * 1.4;
+      m.el.style.transition = "none";
       m.el.style.willChange = "transform, opacity";
     });
 
-    // ----- lensed backdrop stars -----
     var stars = [];
     for (var i = 0; i < 150; i++) {
       stars.push({
@@ -815,26 +725,22 @@
       });
     }
 
-    var sparks = [];   // accretion streams
-    var burst = [];    // Hawking-burst particles
+    var sparks = [];
+    var burst = [];
     var burstMade = false;
 
     function easeOutCubic(x) { return 1 - Math.pow(1 - x, 3); }
     function easeInCubic(x) { return x * x * x; }
     function clamp01(x) { return x < 0 ? 0 : x > 1 ? 1 : x; }
 
-    // Relativistic doppler beaming across the disk: the side rotating
-    // toward the viewer is beamed bright and hot, the receding side red.
     function dopplerGradient(alpha, rOut) {
       var grad = g.createLinearGradient(-rOut, 0, rOut, 0);
-      grad.addColorStop(0, "rgba(255,249,240," + alpha + ")");
-      grad.addColorStop(0.45, "rgba(255,122,38," + alpha * 0.85 + ")");
-      grad.addColorStop(1, "rgba(120,28,6," + alpha * 0.5 + ")");
+      grad.addColorStop(0, "rgba(235,244,255," + alpha + ")");
+      grad.addColorStop(0.42, "rgba(122,162,255," + alpha * 0.9 + ")");
+      grad.addColorStop(1, "rgba(44,58,138," + alpha * 0.55 + ")");
       return grad;
     }
 
-    // r(progress) and θ(r): shared by infall and ejection so the path
-    // out is the exact time-reverse of the path in.
     function radiusAt(m, pr) { return m.r0 * (1 - pr); }
     function angleAt(m, r) {
       return m.th0 + m.swirl * (Math.sqrt(m.r0 / Math.max(r, 8)) - 1);
@@ -845,7 +751,7 @@
       var th = angleAt(m, r);
       var x = cx + r * Math.cos(th);
       var y = cy + r * Math.sin(th);
-      var stretch = 1 + 2.1 * pr;               // tidal stretch, radial
+      var stretch = 1 + 2.1 * pr;
       var shrink = 0.16 + 0.84 * (1 - pr);
       var sr = Math.max(shrink * stretch, 0.02);
       var st = Math.max(shrink / stretch, 0.02);
@@ -866,18 +772,14 @@
         if (a <= 0) continue;
         var ex = s.r * Math.cos(s.th);
         var ey = s.r * Math.sin(s.th) * SQUASH;
-        // Behind the hole, sparks are swallowed by the shadow — but the
-        // disk has thickness, so dissolve smoothly across the plane
-        // instead of cutting at a hard line. Per-spark jitter keeps the
-        // boundary organic.
         if (ex * ex + ey * ey < occR2) {
           var f = clamp01((Math.sin(s.th) + s.jz + 0.06) / 0.3);
-          a *= f * f * (3 - 2 * f); // smoothstep
+          a *= f * f * (3 - 2 * f);
           if (a <= 0.01) continue;
         }
-        g.strokeStyle = "rgba(" + (255) + "," +
-          Math.round(120 + 135 * (1 - heat) * 0.9) + "," +
-          Math.round(40 + 160 * (1 - heat)) + "," + a + ")";
+        g.strokeStyle = "rgba(" +
+          Math.round(145 + 110 * (1 - heat)) + "," +
+          Math.round(175 + 80 * (1 - heat)) + ",255," + a + ")";
         g.lineWidth = s.sz;
         g.beginPath();
         g.moveTo(s.px, s.py);
@@ -897,43 +799,38 @@
       var Rs, veil, diskA, bp = 0;
       var inBoom = t >= T_FALL + T_HOLD;
       if (!inBoom) {
-        Rs = RS * easeOutCubic(clamp01(t / 1500));
+        Rs = RS * easeOutCubic(clamp01(t / 1450));
         veil = 0.94 * easeInCubic(clamp01(t / T_FALL));
-        diskA = 0.12 + 0.88 * clamp01(t / T_FALL);
+        diskA = 0.14 + 0.86 * clamp01(t / T_FALL);
       } else {
         bp = clamp01((t - T_FALL - T_HOLD) / T_BOOM);
-        Rs = RS * (1 - easeOutCubic(bp));   // evaporation runs away fast
+        Rs = RS * (1 - easeOutCubic(bp));
         veil = 0.94 * Math.max(0, 1 - bp * 1.8);
-        diskA = Math.max(0, 1 - bp * 1.3);  // the hole stays lit as it shrinks
+        diskA = Math.max(0, 1 - bp * 1.3);
       }
-      Rs *= 1 + 0.012 * Math.sin(t / 240);  // the hole breathes
+      Rs *= 1 + 0.012 * Math.sin(t / 240);
 
-      // ----- move the matter -----
       for (var i = 0; i < matter.length; i++) {
         var m = matter[i];
         if (!inBoom) {
-          var p = clamp01((t - m.fallDelay) / 1650);
-          var pr = easeInCubic(p);              // gravity accelerates
+          var p = clamp01((t - m.fallDelay) / 1600);
+          var pr = easeInCubic(p);
           var r = radiusAt(m, pr);
-          // redshift fade approaching the photon sphere
           var op = r < Rs * 3.2 ? clamp01((r - Rs * 1.15) / (Rs * 2.05)) : 1;
           placeMatter(m, pr, op.toFixed(3));
         } else {
-          var q = clamp01((t - T_FALL - T_HOLD - m.outDelay) / 1150);
-          var prOut = 1 - easeOutCubic(q);      // exact time-reverse
+          var q = clamp01((t - T_FALL - T_HOLD - m.outDelay) / 1100);
+          var prOut = 1 - easeOutCubic(q);
           placeMatter(m, prOut, clamp01(q * 2.4).toFixed(3));
         }
       }
 
-      // ----- paint the hole -----
       g.clearRect(0, 0, W, H);
-
       if (veil > 0) {
-        g.fillStyle = "rgba(2,2,4," + veil + ")";
+        g.fillStyle = "rgba(6,8,14," + veil + ")";
         g.fillRect(0, 0, W, H);
       }
 
-      // lensed stars: deflection ∝ 1/b², capture below ~2.7 Rs
       if (veil > 0.2) {
         for (var si = 0; si < stars.length; si++) {
           var s = stars[si];
@@ -941,16 +838,14 @@
           var b = Math.sqrt(sdx * sdx + sdy * sdy);
           if (b < 2.7 * Rs) continue;
           var f = 1 + (2.2 * Rs * Rs) / (b * b);
-          var a = veil * 0.8 * s.m * (0.55 + 0.45 * Math.sin(t / 600 + s.tw));
-          g.fillStyle = "rgba(236,236,255," + a + ")";
+          var a = veil * 0.82 * s.m * (0.55 + 0.45 * Math.sin(t / 600 + s.tw));
+          g.fillStyle = "rgba(232,240,255," + a + ")";
           g.fillRect(cx + sdx * f, cy + sdy * f, 1.5, 1.5);
         }
       }
 
       if (Rs > 2) {
-        // accretion streams: Keplerian ω ∝ r^-3/2, with gravitational
-        // time dilation freezing them as they near the horizon
-        if (!inBoom && t < T_FALL + T_HOLD * 0.7 && sparks.length < 240) {
+        if (!inBoom && t < T_FALL + T_HOLD * 0.7 && sparks.length < 230) {
           for (var n = 0; n < 3; n++) {
             sparks.push({
               r: (4.5 + Math.random() * 4.5) * Math.max(Rs, RS * 0.4),
@@ -973,16 +868,14 @@
         g.translate(cx, cy);
         g.rotate(TILT);
 
-        // lensed halo hugging the photon sphere
-        g.shadowColor = "rgba(255,110,30,0.85)";
+        g.shadowColor = "rgba(100,145,255,0.85)";
         g.shadowBlur = Rs * 0.9;
-        g.strokeStyle = dopplerGradient(diskA * 0.5, 4.3 * Rs);
+        g.strokeStyle = dopplerGradient(diskA * 0.55, 4.3 * Rs);
         g.lineWidth = Rs * 0.5;
         g.beginPath();
         g.arc(0, 0, 2.58 * Rs, 0, Math.PI * 2);
         g.stroke();
 
-        // equatorial disk, far side (behind the shadow)
         g.lineWidth = Rs * 1.05;
         g.strokeStyle = dopplerGradient(diskA * 0.9, 4.3 * Rs);
         g.beginPath();
@@ -990,32 +883,26 @@
         g.stroke();
 
         g.shadowBlur = 0;
-
-        // the shadow
         g.fillStyle = "#000";
         g.beginPath();
         g.arc(0, 0, 2.5 * Rs, 0, Math.PI * 2);
         g.fill();
 
-        // photon ring
-        g.strokeStyle = "rgba(255,243,226," + 0.95 * diskA + ")";
+        g.strokeStyle = "rgba(238,245,255," + 0.95 * diskA + ")";
         g.lineWidth = Math.max(1.1, Rs * 0.055);
-        g.shadowColor = "rgba(255,200,140,0.9)";
+        g.shadowColor = "rgba(155,190,255,0.9)";
         g.shadowBlur = 14;
         g.beginPath();
         g.arc(0, 0, 2.6 * Rs, 0, Math.PI * 2);
         g.stroke();
 
-        // inside the photon ring nothing escapes: re-fill the shadow so
-        // no bloom from the ring or disk hazes the interior
         g.shadowBlur = 0;
         g.fillStyle = "#000";
         g.beginPath();
         g.arc(0, 0, 2.47 * Rs, 0, Math.PI * 2);
         g.fill();
 
-        // equatorial disk, near side (in front of the shadow)
-        g.shadowColor = "rgba(255,110,30,0.7)";
+        g.shadowColor = "rgba(100,145,255,0.72)";
         g.shadowBlur = Rs * 0.45;
         g.lineWidth = Rs * 1.05;
         g.strokeStyle = dopplerGradient(diskA, 4.3 * Rs);
@@ -1028,7 +915,6 @@
         g.restore();
       }
 
-      // ----- evaporation: flash, shockwave, Hawking burst -----
       if (inBoom) {
         var tb = t - T_FALL - T_HOLD;
         if (!burstMade) {
@@ -1041,18 +927,18 @@
             });
           }
         }
-        if (tb < 430) {
-          var fa = 1 - tb / 430;
+        if (tb < 420) {
+          var fa = 1 - tb / 420;
           var fr = 3.2 * RS + tb * 2.4;
           var fg = g.createRadialGradient(cx, cy, 0, cx, cy, fr);
-          fg.addColorStop(0, "rgba(255,252,245," + fa + ")");
-          fg.addColorStop(0.5, "rgba(255,180,90," + fa * 0.55 + ")");
-          fg.addColorStop(1, "rgba(255,120,40,0)");
+          fg.addColorStop(0, "rgba(245,250,255," + fa + ")");
+          fg.addColorStop(0.5, "rgba(140,180,255," + fa * 0.52 + ")");
+          fg.addColorStop(1, "rgba(60,100,220,0)");
           g.fillStyle = fg;
           g.fillRect(0, 0, W, H);
         }
         var ringR = easeOutCubic(bp) * Math.hypot(W, H) * 0.62;
-        g.strokeStyle = "rgba(255,240,224," + 0.5 * (1 - bp) + ")";
+        g.strokeStyle = "rgba(224,238,255," + 0.5 * (1 - bp) + ")";
         g.lineWidth = 2 + 9 * (1 - bp);
         g.beginPath();
         g.arc(cx, cy, ringR, 0, Math.PI * 2);
@@ -1062,7 +948,7 @@
           h.r += h.v * dt;
           var ha = Math.max(0, 1 - bp * 1.4);
           if (ha <= 0) continue;
-          g.strokeStyle = "rgba(255,226,190," + ha * 0.8 + ")";
+          g.strokeStyle = "rgba(215,232,255," + ha * 0.8 + ")";
           g.lineWidth = 1;
           g.beginPath();
           g.moveTo(cx + (h.r - 7) * Math.cos(h.th), cy + (h.r - 7) * Math.sin(h.th));
@@ -1074,17 +960,16 @@
       if (t < T_END) {
         requestAnimationFrame(frame);
       } else {
-        // hand the universe back, exactly as it was
         matter.forEach(function (m) {
           m.el.style.transform = "";
           m.el.style.opacity = "";
-          void m.el.offsetWidth; // settle before re-enabling transitions
+          void m.el.offsetWidth;
           m.el.style.transition = m.oldTransition || "";
           m.el.style.willChange = "";
         });
         cv.remove();
         document.documentElement.classList.remove("bh-lock");
-        showToast("SINGULARITY RESOLVED — ALL INFORMATION RECOVERED.", 3400);
+        showToast("Singularity resolved — information conserved.", 3200);
         allDone();
       }
     }
