@@ -1,6 +1,28 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-label="Benjamin Yi">
-  <rect width="192" height="192" rx="40" fill="#14161b"/>
-  <circle cx="152" cy="40" r="10" fill="#5b82ff"/>
-  <path fill="#f5f3ee" d="M44 50h40c17 0 28 9 28 24 0 9-5 17-14 20 11 4 17 12 17 24 0 17-12 26-31 26H44V50Zm19 18v18h18c7 0 11-3 11-9s-4-9-11-9H63Zm0 35v22h20c8 0 12-4 12-11s-4-11-12-11H63Z"/>
-  <path fill="#f5f3ee" d="M111 50h22l14 34 15-34h21l-27 54v40h-19v-40L111 50Z"/>
+  <defs>
+    <radialGradient id="g" cx="74%" cy="28%" r="78%">
+      <stop offset="0%" stop-color="#2447b8" stop-opacity="0.52"/>
+      <stop offset="55%" stop-color="#111728" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#0b0d12" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="sq">
+      <rect width="192" height="192" rx="44"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#sq)">
+    <rect width="192" height="192" fill="#0d1017"/>
+    <rect width="192" height="192" fill="url(#g)"/>
+    <!-- Subtle topographic potential rings echoing the 3D manifold -->
+    <circle cx="148" cy="44" r="56" fill="none" stroke="#7aa2ff" stroke-opacity="0.22" stroke-width="2.5"/>
+    <circle cx="148" cy="44" r="92" fill="none" stroke="#7aa2ff" stroke-opacity="0.12" stroke-width="2"/>
+    <circle cx="148" cy="44" r="130" fill="none" stroke="#7aa2ff" stroke-opacity="0.07" stroke-width="2"/>
+    <!-- Optically centered BY monogram: x=34..158 (34px L/R), y=54..138 (54px T/B) -->
+    <path fill="#f5f3ee" fill-rule="evenodd" d="
+      M34 54 H70 C84 54 91 61 91 74 C91 83 86 90 78 93 C88 96 94 104 94 115 C94 129 85 138 69 138 H34 Z
+      M50 68 V88 H67 C73 88 76 84 76 78 C76 72 73 68 67 68 Z
+      M50 101 V124 H68 C75 124 79 120 79 112.5 C79 105 75 101 68 101 Z
+    "/>
+    <path fill="#7aa2ff" d="M100 54 H117 L129 88 L141 54 H158 L137 104 V138 H121 V104 Z"/>
+  </g>
+  <rect x="2" y="2" width="188" height="188" rx="42" fill="none" stroke="#7aa2ff" stroke-opacity="0.24" stroke-width="4"/>
 </svg>
