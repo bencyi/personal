@@ -466,18 +466,62 @@
   }
 
   var contactForm = document.getElementById("contactForm");
+  var formFallback = document.getElementById("formFallback");
+  var gmailLink = document.getElementById("gmailCompose");
+  var outlookLink = document.getElementById("outlookCompose");
+  var copyDraftBtn = document.getElementById("copyDraft");
+  var lastDraftText = "";
+
+  if (copyDraftBtn) {
+    copyDraftBtn.addEventListener("click", function () {
+      if (!lastDraftText) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(lastDraftText).then(function () {
+          showToast("Draft & email address copied");
+        });
+      }
+    });
+  }
+
   if (contactForm) {
     contactForm.addEventListener("submit", function (e) {
       e.preventDefault();
       var addr = atob(EMAIL_B64);
       var data = new FormData(contactForm);
-      var subject = "Note from " + data.get("name");
-      var body = data.get("message") +
-        "\n\n— " + data.get("name") + " <" + data.get("email") + ">";
-      window.location.href = "mailto:" + addr +
+      var name = String(data.get("name") || "").trim();
+      var email = String(data.get("email") || "").trim();
+      var message = String(data.get("message") || "").trim();
+      var subject = "Note from " + name;
+      var body = message + "\n\n— " + name + " <" + email + ">";
+
+      var mailtoUrl = "mailto:" + addr +
         "?subject=" + encodeURIComponent(subject) +
         "&body=" + encodeURIComponent(body);
-      showToast("Opening your mail app…");
+
+      // Populate webmail & copy-draft fallbacks for visitors without a desktop mail handler
+      lastDraftText = "To: " + addr + "\nSubject: " + subject + "\n\n" + body;
+      if (gmailLink) {
+        gmailLink.href = "https://mail.google.com/mail/?view=cm&fs=1&to=" +
+          encodeURIComponent(addr) + "&su=" + encodeURIComponent(subject) +
+          "&body=" + encodeURIComponent(body);
+      }
+      if (outlookLink) {
+        outlookLink.href = "https://outlook.office.com/mail/deeplink/compose?to=" +
+          encodeURIComponent(addr) + "&subject=" + encodeURIComponent(subject) +
+          "&body=" + encodeURIComponent(body);
+      }
+      if (formFallback) formFallback.hidden = false;
+
+      // Trigger mailto via a real anchor click inside the synchronous user gesture
+      // (more reliable than window.location.href across modern browsers).
+      var a = document.createElement("a");
+      a.href = mailtoUrl;
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      showToast("Opening email — or use Gmail / Outlook below");
     });
   }
 

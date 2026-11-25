@@ -503,9 +503,18 @@
           </label>
           <div class="note-form__actions">
             <button class="action-primary" type="submit">
-              <span>Open in mail</span>
+              <span>Send email</span>
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
             </button>
+          </div>
+
+          <div class="note-form__fallback mono" id="formFallback" hidden>
+            <span>No mail app? Compose in</span>
+            <a id="gmailCompose" href="#" target="_blank" rel="noopener">Gmail ↗</a>
+            <span aria-hidden="true">·</span>
+            <a id="outlookCompose" href="#" target="_blank" rel="noopener">Outlook ↗</a>
+            <span aria-hidden="true">·</span>
+            <button id="copyDraft" type="button" class="fallback-copy">Copy draft</button>
           </div>
         </form>
       </div>

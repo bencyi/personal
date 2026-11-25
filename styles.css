@@ -1391,6 +1391,33 @@ body:not(.page-home) .site-head {
   transform: translateX(3px);
 }
 
+.note-form__fallback {
+  margin-top: 1.15rem;
+  padding-top: 0.95rem;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+.note-form__fallback[hidden] { display: none; }
+.note-form__fallback a,
+.fallback-copy {
+  color: var(--accent);
+  text-decoration: none;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
+.note-form__fallback a:hover,
+.fallback-copy:hover {
+  text-decoration: underline;
+}
+
 /* ---------- footer ---------- */
 
 .site-foot {
